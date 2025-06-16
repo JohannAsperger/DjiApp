@@ -1,77 +1,190 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>DJIApp - Resumen de Vuelos</title>
+  <meta charset="UTF-8" />
+  <title>DJIApp</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f3f4f6;
-      margin: 0;
-      padding: 0;
+      margin: 1em;
     }
-    header {
-      background-color: #1f2937;
+    #cesiumContainer {
+      width: 100%;
+      height: 90vh;
+    }
+    .cesium-custom-controls {
+      position: absolute;
+      top: 75px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 100;
+    }
+    .control-button {
+      background-color: rgba(42, 42, 42, 0.9);
       color: white;
-      padding: 20px;
-      text-align: center;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      transition: background-color 0.3s;
     }
-    .contenedor {
-      max-width: 900px;
-      margin: 30px auto;
-      background-color: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-    }
-    .vuelo {
-      border-bottom: 1px solid #e5e7eb;
-      padding: 15px 0;
-    }
-    .vuelo:last-child {
-      border-bottom: none;
-    }
-    .vuelo h2 {
-      margin: 0 0 5px 0;
-      font-size: 20px;
-      color: #111827;
-    }
-    .vuelo p {
-      margin: 3px 0;
-      color: #374151;
+    .control-button:hover {
+      background-color: rgba(66, 66, 66, 0.9);
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>DJIApp - Resumen de Vuelos</h1>
-  </header>
+  <div id="resumen-general">
+    <h1>Resumen General</h1>
+    <p>Total de vuelos: {{ resumen.total_vuelos }}</p>
+    <p>Duración total de vuelo: {{ resumen.tiempo_total_minutos | round(2) }} minutos</p>
+    <p>Distancia total recorrida: {{ resumen.distancia_total_km | round(2) }} km</p>
+    <p>Distancia máxima desde origen: {{ resumen.distancia_maxima_desde_home | round(2) }} km</p>
+    <p>Distancia vuelo más largo: {{ resumen.distancia_vuelo_mas_largo | round(2) }} km</p>
+    <p>Altitud máxima: {{ resumen.altura_maxima_m | round(2) }} m</p>
+    <p>Temperatura máxima batería: {{ resumen.temperatura_maxima_bateria_c | round(1) }} °C</p>
+    <p>Velocidad máxima: {{ resumen.velocidad_maxima_kmh | round(1) }} km/h</p>
 
-  <div class="contenedor">
-    {% if resumen.cantidad_vuelos > 0 %}
-      <h2>Resumen General</h2>
-      <p><strong>Cantidad de vuelos:</strong> {{ resumen.cantidad_vuelos }}</p>
-      <p><strong>Tiempo total de vuelo:</strong> {{ resumen.tiempo_total_min }} minutos</p>
-      <p><strong>Kilometraje total:</strong> {{ resumen.kilometraje_total }} km</p>
-      <p><strong>Distancia máx desde origen:</strong> {{ resumen.distancia_max_origen }} km</p>
-      <p><strong>Distancia vuelo más largo:</strong> {{ resumen.distancia_vuelo_mas_largo }} km</p>
-      <p><strong>Altitud máxima:</strong> {{ resumen.altitud_maxima }} m</p>
-      <p><strong>Temperatura máx batería:</strong> {{ resumen.temperatura_max_bateria }} °C</p>
-      <p><strong>Velocidad máxima:</strong> {{ resumen.velocidad_maxima }} km/h</p>
-
-      <hr>
-
+    <h2>Vuelos</h2>
+    <ul id="lista-vuelos">
       {% for vuelo in vuelos %}
-        <div class="vuelo">
-          <h2>{{ vuelo.fecha }}</h2>
-          <p><strong>Duración:</strong> {{ vuelo.duracion_minutos }} minutos</p>
-          <p><strong>Altura máx:</strong> {{ vuelo.altitud_maxima_metros }} m</p>
-          <p><strong>Distancia máx:</strong> {{ vuelo.distancia_maxima_km }} km</p>
-        </div>
+        <li><button onclick="verVuelo('{{ vuelo.id }}')">{{ vuelo.fecha }}</button></li>
       {% endfor %}
-    {% else %}
-      <p>No hay vuelos disponibles todavía.</p>
-    {% endif %}
+    </ul>
   </div>
+
+  <div id="vista-vuelo" style="display: none; position: relative;">
+    <button onclick="volverAlResumen()" style="position: absolute; top: 10px; left: 10px; z-index: 101;">← Volver al resumen</button>
+    <div id="cesiumContainer"></div>
+    <div class="cesium-custom-controls">
+      <button class="control-button" id="resetCamera" onclick="resetCamera()">Reset vista</button>
+      <button class="control-button" id="terrainToggle" onclick="toggleTerrain()">Activar topografía</button>
+    </div>
+  </div>
+
+  <script>
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk0M2RjOC0xYzc5LTQyZTgtOTMzYy1iOGMzOGMyMjFkNGIiLCJpZCI6MzEyMjA4LCJpYXQiOjE3NDk5MjM2OTZ9.hNylnne1DsKBD6JknfqBaB0NwC2YeRd2B0LqiCryCxM';
+
+    let viewer = null;
+    let terrainEnabled = false;
+    let firstPoint = null;
+
+    async function verVuelo(vueloId) {
+      try {
+        const response = await fetch(`/vuelo/${vueloId}`);
+        const data = await response.json();
+
+        if (viewer) viewer.destroy();
+
+        viewer = new Cesium.Viewer("cesiumContainer", {
+          terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+          timeline: false,
+          animation: false,
+          baseLayerPicker: false,
+          navigationHelpButton: true,
+          sceneModePicker: true,
+          homeButton: true,
+          fullscreenButton: true,
+          infoBox: false,
+          selectionIndicator: false,
+          navigationInstructionsInitiallyVisible: true,
+          shouldAnimate: true
+        });
+
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+        terrainEnabled = false;
+        document.getElementById("terrainToggle").innerText = "Activar topografía";
+
+        document.getElementById("resumen-general").style.display = "none";
+        document.getElementById("vista-vuelo").style.display = "block";
+
+        const puntos = data.coordenadas.filter(p => p.lat !== null && p.lon !== null && p.alt !== null);
+        const posiciones = puntos.map(p => Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt));
+
+        if (posiciones.length === 0) {
+          alert("No hay coordenadas válidas para este vuelo.");
+          return;
+        }
+
+        firstPoint = posiciones[0];
+
+        viewer.entities.add({
+          polyline: {
+            positions: posiciones,
+            width: 3,
+            material: Cesium.Color.RED
+          }
+        });
+
+        viewer.camera.flyTo({
+          destination: firstPoint,
+          duration: 2
+        });
+
+      } catch (error) {
+        console.error("Error al cargar el vuelo:", error);
+        alert("Error al cargar el vuelo.");
+      }
+    }
+
+    async function toggleTerrain() {
+      if (!viewer) return;
+
+      if (!terrainEnabled) {
+        try {
+          const terrain = await Cesium.createWorldTerrainAsync();
+          viewer.terrainProvider = terrain;
+          viewer.scene.globe.depthTestAgainstTerrain = true;
+          document.getElementById("terrainToggle").innerText = "Desactivar topografía";
+          terrainEnabled = true;
+        } catch (error) {
+          console.error("No se pudo cargar la topografía:", error);
+        }
+      } else {
+        viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+        document.getElementById("terrainToggle").innerText = "Activar topografía";
+        terrainEnabled = false;
+      }
+    }
+
+    function resetCamera() {
+      if (viewer && firstPoint) {
+        viewer.camera.flyTo({
+          destination: firstPoint,
+          duration: 2
+        });
+      }
+    }
+
+    function volverAlResumen() {
+      document.getElementById("vista-vuelo").style.display = "none";
+      document.getElementById("resumen-general").style.display = "block";
+      if (viewer) {
+        viewer.destroy();
+        viewer = null;
+      }
+    }
+  </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
