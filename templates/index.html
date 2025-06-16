@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>DJIApp - Resumen de Vuelos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #1f2937;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .contenedor {
+      max-width: 900px;
+      margin: 30px auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    }
+    .vuelo {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 15px 0;
+    }
+    .vuelo:last-child {
+      border-bottom: none;
+    }
+    .vuelo h2 {
+      margin: 0 0 5px 0;
+      font-size: 20px;
+      color: #111827;
+    }
+    .vuelo p {
+      margin: 3px 0;
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DJIApp - Resumen de Vuelos</h1>
+  </header>
+
+  <div class="contenedor">
+    {% if resumen.cantidad_vuelos > 0 %}
+      <h2>Resumen General</h2>
+      <p><strong>Cantidad de vuelos:</strong> {{ resumen.cantidad_vuelos }}</p>
+      <p><strong>Tiempo total de vuelo:</strong> {{ resumen.tiempo_total_min }} minutos</p>
+      <p><strong>Kilometraje total:</strong> {{ resumen.kilometraje_total }} km</p>
+      <p><strong>Distancia máx desde origen:</strong> {{ resumen.distancia_max_origen }} km</p>
+      <p><strong>Distancia vuelo más largo:</strong> {{ resumen.distancia_vuelo_mas_largo }} km</p>
+      <p><strong>Altitud máxima:</strong> {{ resumen.altitud_maxima }} m</p>
+      <p><strong>Temperatura máx batería:</strong> {{ resumen.temperatura_max_bateria }} °C</p>
+      <p><strong>Velocidad máxima:</strong> {{ resumen.velocidad_maxima }} km/h</p>
+
+      <hr>
+
+      {% for vuelo in vuelos %}
+        <div class="vuelo">
+          <h2>{{ vuelo.fecha }}</h2>
+          <p><strong>Duración:</strong> {{ vuelo.duracion_minutos }} minutos</p>
+          <p><strong>Altura máx:</strong> {{ vuelo.altitud_maxima_metros }} m</p>
+          <p><strong>Distancia máx:</strong> {{ vuelo.distancia_maxima_km }} km</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p>No hay vuelos disponibles todavía.</p>
+    {% endif %}
+  </div>
+</body>
+</html>
