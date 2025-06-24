@@ -28,9 +28,13 @@ window.cargarVuelo = async function (vueloId) {
       throw new Error("No se encontraron tiempos válidos para animar la trayectoria");
     }
 
+    if (!datos.fecha_inicio) {
+      throw new Error("No se recibió la fecha de inicio del vuelo");
+    }
+
     console.log(`🔹 Cargados ${datos.puntos.length} puntos para vuelo ${vueloId}`);
 
-    await inicializarCesiumViewer(datos.puntos, datos.tiempos);
+    await inicializarCesiumViewer(datos.puntos, datos.tiempos, datos.fecha_inicio);
   } catch (error) {
     alert(`Error inicializando el visualizador 3D\n\n${error.message}`);
     console.error("❌ Error cargando vuelo:", error);
@@ -49,7 +53,7 @@ window.volverAlResumen = function () {
   resumen.style.display = "block";
 };
 
-async function inicializarCesiumViewer(coordenadas, tiempos) {
+async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
   if (viewer) {
     viewer.destroy();
     viewer = null;
@@ -78,13 +82,13 @@ async function inicializarCesiumViewer(coordenadas, tiempos) {
     Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt)
   );
 
-  // Esfera animada sincronizada con tiempo real
+  // ✅ Fecha real del vuelo como base
+  const start = Cesium.JulianDate.fromIso8601(fechaInicioStr);
   const property = new Cesium.SampledPositionProperty();
-  const start = Cesium.JulianDate.now();
   const t0 = tiempos[0];
 
   for (let i = 0; i < puntos.length; i++) {
-    const offsetSeg = (tiempos[i] - t0) / 1000; // milisegundos a segundos
+    const offsetSeg = (tiempos[i] - t0) / 1000;
     const time = Cesium.JulianDate.addSeconds(start, offsetSeg, new Cesium.JulianDate());
     property.addSample(time, puntos[i]);
   }
@@ -96,7 +100,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos) {
   viewer.clock.stopTime = stop.clone();
   viewer.clock.currentTime = start.clone();
   viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
-  viewer.clock.multiplier = 1; // velocidad real
+  viewer.clock.multiplier = 1;
   viewer.clock.shouldAnimate = true;
   viewer.timeline.zoomTo(start, stop);
 
@@ -111,8 +115,8 @@ async function inicializarCesiumViewer(coordenadas, tiempos) {
     },
     path: {
       resolution: 1,
-      leadTime: 0, // sin línea hacia adelante
-      trailTime: duracionTotalSeg, // trazo visible en tiempo real
+      leadTime: 0,
+      trailTime: duracionTotalSeg,
       material: Cesium.Color.YELLOW,
       width: 2,
     },
@@ -120,6 +124,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos) {
 
   viewer.zoomTo(viewer.entities);
 }
+
 
 
 

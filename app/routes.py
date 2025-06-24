@@ -8,7 +8,6 @@ from .utils import calcular_resumen_general
 rutas = Blueprint("routes", __name__)
 DATA_PATH = "data/vuelos"
 
-
 @rutas.route("/")
 def index():
     vuelos = []
@@ -23,8 +22,7 @@ def index():
                 print(f"Error cargando resumen para {vuelo_id}: {e}")
                 continue
 
-    vuelos.sort(key=lambda x: x["resumen"].get("fecha_vuelo", ""),
-                reverse=True)
+    vuelos.sort(key=lambda x: x["resumen"].get("fecha_vuelo", ""), reverse=True)
     resumen_general = calcular_resumen_general()
 
     return render_template("index.html",
@@ -37,6 +35,7 @@ def obtener_vuelo(vuelo_id):
     ruta_csv = os.path.join(DATA_PATH, vuelo_id, "datos.csv")
     puntos = []
     tiempos_ms = []
+    inicio_datetime = None
     inicio_timestamp_ms = None
 
     if not os.path.isfile(ruta_csv):
@@ -47,8 +46,7 @@ def obtener_vuelo(vuelo_id):
             reader = csv.reader(f)
             primera_fila = next(reader, None)
 
-            if primera_fila and len(primera_fila) > 3 and primera_fila[
-                    2].strip().lower() == "latitude":
+            if primera_fila and len(primera_fila) > 3 and primera_fila[2].strip().lower() == "latitude":
                 pass
             else:
                 reader = [primera_fila] + list(reader)
@@ -64,16 +62,21 @@ def obtener_vuelo(vuelo_id):
                     alt_feet = float(fila[47])
                     alt_metros = alt_feet * 0.3048
 
-                    if (-90 <= lat <= 90 and -180 <= lon <= 180 and lat != 0
-                            and lon != 0):
+                    if (-90 <= lat <= 90 and -180 <= lon <= 180 and lat != 0 and lon != 0):
                         puntos.append({
                             "lat": lat,
                             "lon": lon,
                             "alt": alt_metros
                         })
 
-                        if inicio_timestamp_ms is None:
-                            inicio_timestamp_ms = timestamp
+                        if inicio_datetime is None:
+                            try:
+                                inicio_datetime = datetime.strptime(
+                                    fila[1], "%Y-%m-%d %H:%M:%S"
+                                ).replace(tzinfo=timezone.utc)
+                                inicio_timestamp_ms = timestamp
+                            except ValueError:
+                                continue
 
                         delta_ms = timestamp - inicio_timestamp_ms
                         tiempos_ms.append(delta_ms)
@@ -84,16 +87,15 @@ def obtener_vuelo(vuelo_id):
     except IOError as e:
         return jsonify({"error": f"Error leyendo archivo: {str(e)}"}), 500
 
-    if not puntos:
+    if not puntos or inicio_datetime is None:
         return jsonify({"error": "No se encontraron coordenadas válidas"}), 404
 
-    dt_inicio = datetime.utcfromtimestamp(inicio_timestamp_ms /
-                                          1000).replace(tzinfo=timezone.utc)
+    fecha_inicio_iso = inicio_datetime.isoformat().replace("+00:00", "Z")
 
     return jsonify({
         "puntos": puntos,
         "tiempos": tiempos_ms,
-        "fecha_inicio": dt_inicio.isoformat(),
+        "fecha_inicio": fecha_inicio_iso,
         "total_puntos": len(puntos),
         "vuelo_id": vuelo_id
     })
@@ -115,3 +117,6 @@ def detalle_vuelo(vuelo_id):
                                resumen=resumen)
     except (json.JSONDecodeError, IOError):
         return "Error cargando datos del vuelo", 500
+
+
+
