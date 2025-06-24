@@ -60,11 +60,11 @@ async function inicializarCesiumViewer(coordenadas) {
 
   viewer = new Cesium.Viewer("cesiumContainer", {
     terrainProvider: terrain,
-    timeline: false,
-    animation: false,
+    timeline: true,
+    animation: true,
     geocoder: false,
     homeButton: false,
-    sceneModePicker: false,
+    sceneModePicker: true,
     baseLayerPicker: true,
     navigationHelpButton: true,  // ✅ Activado
     infoBox: false,
