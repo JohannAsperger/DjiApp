@@ -28,7 +28,7 @@ window.cargarVuelo = async function (vueloId) {
 
     console.log(`🔹 Cargados ${datos.puntos.length} puntos para vuelo ${vueloId}`);
 
-    await inicializarCesiumViewer(datos.puntos);  // 👈 función async
+    await inicializarCesiumViewer(datos.puntos);
   } catch (error) {
     alert(`Error inicializando el visualizador 3D\n\n${error.message}`);
     console.error("❌ Error cargando vuelo:", error);
@@ -53,9 +53,10 @@ async function inicializarCesiumViewer(coordenadas) {
     viewer = null;
   }
 
-  Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk0M2RjOC0xYzc5LTQyZTgtOTMzYy1iOGMzOGMyMjFkNGIiLCJpZCI6MzEyMjA4LCJpYXQiOjE3NDk5MjM2OTZ9.hNylnne1DsKBD6JknfqBaB0NwC2YeRd2B0LqiCryCxM";
+  Cesium.Ion.defaultAccessToken =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk0M2RjOC0xYzc5LTQyZTgtOTMzYy1iOGMzOGMyMjFkNGIiLCJpZCI6MzEyMjA4LCJpYXQiOjE3NDk5MjM2OTZ9.hNylnne1DsKBD6JknfqBaB0NwC2YeRd2B0LqiCryCxM";
 
-  const terrain = await Cesium.createWorldTerrainAsync();  // ✅ NUEVO método
+  const terrain = await Cesium.createWorldTerrainAsync();
 
   viewer = new Cesium.Viewer("cesiumContainer", {
     terrainProvider: terrain,
@@ -64,10 +65,10 @@ async function inicializarCesiumViewer(coordenadas) {
     geocoder: false,
     homeButton: false,
     sceneModePicker: false,
-    baseLayerPicker: false,
-    navigationHelpButton: false,
+    baseLayerPicker: true,
+    navigationHelpButton: true,  // ✅ Activado
     infoBox: false,
-    scene3DOnly: true,
+    scene3DOnly: false,          // ✅ Habilita pitch, roll, yaw
     fullscreenButton: false,
   });
 
@@ -85,33 +86,6 @@ async function inicializarCesiumViewer(coordenadas) {
   });
 
   viewer.zoomTo(viewer.entities);
-}
-
-// Controles de cámara
-function zoomIn() {
-  if (viewer) viewer.camera.zoomIn();
-}
-
-function zoomOut() {
-  if (viewer) viewer.camera.zoomOut();
-}
-
-function setTopView() {
-  if (viewer) {
-    const center = viewer.scene.camera.positionWC;
-    viewer.camera.setView({
-      destination: center,
-      orientation: {
-        heading: 0,
-        pitch: -Math.PI / 2,
-        roll: 0,
-      },
-    });
-  }
-}
-
-function resetView() {
-  if (viewer) viewer.zoomTo(viewer.entities);
 }
 
 
