@@ -34,7 +34,6 @@ window.cargarVuelo = async function (vueloId) {
 
     console.log(`🔹 Cargados ${datos.coordenadas.length} puntos para vuelo ${vueloId}`);
 
-    // ✅ Mostrar datos desde datos.resumen
     const r = datos.resumen;
     document.getElementById("duracion").textContent = r.duracion_segundos ? (r.duracion_segundos / 60).toFixed(1) : "—";
     document.getElementById("bateria-inicio").textContent = r.bateria_inicio_porcentaje ?? "—";
@@ -45,7 +44,6 @@ window.cargarVuelo = async function (vueloId) {
     document.getElementById("temperatura-maxima").textContent = r.temperatura_maxima_bateria_c?.toFixed(1) ?? "—";
     document.getElementById("velocidad-maxima").textContent = r.velocidad_maxima_kmh?.toFixed(1) ?? "—";
 
-    // ✅ Forzar formato ISO 8601 válido para Cesium
     const fechaIsoZ = datos.fecha_inicio.replace("+00:00", "Z");
 
     await inicializarCesiumViewer(datos.coordenadas, datos.tiempos, fechaIsoZ);
@@ -76,7 +74,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
   Cesium.Ion.defaultAccessToken =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk0M2RjOC0xYzc5LTQyZTgtOTMzYy1iOGMzOGMyMjFkNGIiLCJpZCI6MzEyMjA4LCJpYXQiOjE3NDk5MjM2OTZ9.hNylnne1DsKBD6JknfqBaB0NwC2YeRd2B0LqiCryCxM";
 
-  const terrain = await Cesium.createWorldTerrainAsync();
+  const terrain = new Cesium.EllipsoidTerrainProvider(); // 👈 Terreno plano
 
   viewer = new Cesium.Viewer("cesiumContainer", {
     terrainProvider: terrain,
@@ -137,6 +135,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
 
   viewer.zoomTo(viewer.entities);
 }
+
 
 
 
