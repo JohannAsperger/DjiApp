@@ -1,5 +1,6 @@
 import csv
 import os
+import json
 from datetime import datetime
 from math import radians, cos, sin, sqrt, atan2
 
@@ -66,8 +67,16 @@ def procesar_archivo_csv(ruta_archivo):
             except Exception:
                 continue
 
+        # ✅ Guardar todas las filas completas como respaldo futuro
+        id_vuelo = os.path.splitext(os.path.basename(ruta_archivo))[0]
+        directorio_salida = os.path.join("data/vuelos", id_vuelo)
+        os.makedirs(directorio_salida, exist_ok=True)
+
+        with open(os.path.join(directorio_salida, "raw_data.json"), "w", encoding="utf-8") as f_json:
+            json.dump(filas, f_json, ensure_ascii=False, indent=2)
+
         return {
-            "id": os.path.splitext(os.path.basename(ruta_archivo))[0],
+            "id": id_vuelo,
             "fecha": fecha_vuelo,
             "duracion_segundos": round(duracion_segundos, 1),
             "altitud_maxima_metros": round(altitud_max * 0.3048, 1),
