@@ -1,5 +1,3 @@
-// static/js/app.js
-
 let viewer = null;
 
 window.cargarVuelo = async function (vueloId) {
@@ -26,9 +24,13 @@ window.cargarVuelo = async function (vueloId) {
       throw new Error("No se encontraron coordenadas para este vuelo");
     }
 
+    if (!datos.tiempos || datos.tiempos.length !== datos.puntos.length) {
+      throw new Error("No se encontraron tiempos válidos para animar la trayectoria");
+    }
+
     console.log(`🔹 Cargados ${datos.puntos.length} puntos para vuelo ${vueloId}`);
 
-    await inicializarCesiumViewer(datos.puntos);
+    await inicializarCesiumViewer(datos.puntos, datos.tiempos);
   } catch (error) {
     alert(`Error inicializando el visualizador 3D\n\n${error.message}`);
     console.error("❌ Error cargando vuelo:", error);
@@ -47,7 +49,7 @@ window.volverAlResumen = function () {
   resumen.style.display = "block";
 };
 
-async function inicializarCesiumViewer(coordenadas) {
+async function inicializarCesiumViewer(coordenadas, tiempos) {
   if (viewer) {
     viewer.destroy();
     viewer = null;
@@ -85,38 +87,48 @@ async function inicializarCesiumViewer(coordenadas) {
     },
   });
 
-  // Crear la entidad animada (esfera)
+  // Esfera animada sincronizada con tiempo real
   const property = new Cesium.SampledPositionProperty();
   const start = Cesium.JulianDate.now();
+  const t0 = tiempos[0];
 
-  puntos.forEach((pos, i) => {
-    const time = Cesium.JulianDate.addSeconds(start, i, new Cesium.JulianDate());
-    property.addSample(time, pos);
-  });
+  for (let i = 0; i < puntos.length; i++) {
+    const offsetSeg = (tiempos[i] - t0) / 1000; // milisegundos a segundos
+    const time = Cesium.JulianDate.addSeconds(start, offsetSeg, new Cesium.JulianDate());
+    property.addSample(time, puntos[i]);
+  }
+
+  const duracionTotalSeg = (tiempos[tiempos.length - 1] - t0) / 1000;
+  const stop = Cesium.JulianDate.addSeconds(start, duracionTotalSeg, new Cesium.JulianDate());
 
   viewer.clock.startTime = start.clone();
-  viewer.clock.stopTime = Cesium.JulianDate.addSeconds(start, puntos.length, new Cesium.JulianDate());
+  viewer.clock.stopTime = stop.clone();
   viewer.clock.currentTime = start.clone();
   viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
-  viewer.clock.multiplier = 1;
+  viewer.clock.multiplier = 1; // velocidad real
   viewer.clock.shouldAnimate = true;
+  viewer.timeline.zoomTo(start, stop);
 
   viewer.entities.add({
     availability: new Cesium.TimeIntervalCollection([
-      new Cesium.TimeInterval({
-        start: viewer.clock.startTime,
-        stop: viewer.clock.stopTime,
-      }),
+      new Cesium.TimeInterval({ start, stop }),
     ]),
     position: property,
     point: {
       pixelSize: 10,
       color: Cesium.Color.RED,
     },
+    path: {
+      resolution: 1,
+      material: Cesium.Color.YELLOW,
+      width: 2,
+    },
   });
 
   viewer.zoomTo(viewer.entities);
 }
+
+
 
 
 
