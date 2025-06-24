@@ -66,9 +66,9 @@ async function inicializarCesiumViewer(coordenadas) {
     homeButton: false,
     sceneModePicker: true,
     baseLayerPicker: true,
-    navigationHelpButton: true,  // ✅ Activado
+    navigationHelpButton: true,
     infoBox: false,
-    scene3DOnly: false,          // ✅ Habilita pitch, roll, yaw
+    scene3DOnly: false,
     fullscreenButton: false,
   });
 
@@ -85,8 +85,39 @@ async function inicializarCesiumViewer(coordenadas) {
     },
   });
 
+  // Crear la entidad animada (esfera)
+  const property = new Cesium.SampledPositionProperty();
+  const start = Cesium.JulianDate.now();
+
+  puntos.forEach((pos, i) => {
+    const time = Cesium.JulianDate.addSeconds(start, i, new Cesium.JulianDate());
+    property.addSample(time, pos);
+  });
+
+  viewer.clock.startTime = start.clone();
+  viewer.clock.stopTime = Cesium.JulianDate.addSeconds(start, puntos.length, new Cesium.JulianDate());
+  viewer.clock.currentTime = start.clone();
+  viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
+  viewer.clock.multiplier = 1;
+  viewer.clock.shouldAnimate = true;
+
+  viewer.entities.add({
+    availability: new Cesium.TimeIntervalCollection([
+      new Cesium.TimeInterval({
+        start: viewer.clock.startTime,
+        stop: viewer.clock.stopTime,
+      }),
+    ]),
+    position: property,
+    point: {
+      pixelSize: 10,
+      color: Cesium.Color.RED,
+    },
+  });
+
   viewer.zoomTo(viewer.entities);
 }
+
 
 
 
