@@ -21,7 +21,7 @@
     <h1>Resumen de Vuelos</h1>
     <ul>
       <li><strong>Cantidad total de vuelos:</strong> {{ resumen_general.cantidad_vuelos }}</li>
-      <li><strong>Duración total de vuelo:</strong> {{ resumen_general.duracion_total_minutos }} minutos</li>
+      <li><strong>Duración total de vuelo:</strong> {{ resumen_general.duracion_total_min }} minutos</li>
       <li><strong>Distancia recorrida total:</strong> {{ resumen_general.distancia_total_km }} km</li>
       <li><strong>Distancia máxima desde el origen:</strong> {{ resumen_general.distancia_maxima_km }} km</li>
       <li><strong>Altitud máxima alcanzada:</strong> {{ resumen_general.altitud_maxima_metros }} metros</li>
@@ -32,7 +32,8 @@
     <h2>Vuelos</h2>
     <ul id="lista-vuelos">
       {% for vuelo in vuelos %}
-        <li><a href="#" class="enlace-vuelo" data-vuelo="{{ vuelo.id }}">{{ vuelo.resumen.fecha }}</a></li>
+        <!-- ✅ Corrección: acceso directo a vuelo.fecha -->
+        <li><a href="#" class="enlace-vuelo" data-vuelo="{{ vuelo.id }}">{{ vuelo.fecha }}</a></li>
       {% endfor %}
     </ul>
   </div>
@@ -40,6 +41,20 @@
   <div id="detalle-vuelo" style="display: none; position: relative;">
     <button onclick="window.volverAlResumen()">← Volver al resumen</button>
     <div id="cesiumContainer"></div>
+
+    <div id="info-vuelo">
+      <h3>Detalles del vuelo</h3>
+      <ul>
+        <li><strong>Duración:</strong> <span id="duracion"></span> minutos</li>
+        <li><strong>Batería al inicio:</strong> <span id="bateria-inicio"></span>%</li>
+        <li><strong>Batería al final:</strong> <span id="bateria-fin"></span>%</li>
+        <li><strong>Altitud máxima:</strong> <span id="altitud-maxima"></span> m</li>
+        <li><strong>Distancia máxima desde origen:</strong> <span id="distancia-maxima"></span> km</li>
+        <li><strong>Distancia total recorrida:</strong> <span id="distancia-total"></span> km</li>
+        <li><strong>Temperatura máxima batería:</strong> <span id="temperatura-maxima"></span> °C</li>
+        <li><strong>Velocidad máxima alcanzada:</strong> <span id="velocidad-maxima"></span> km/h</li>
+      </ul>
+    </div>
   </div>
 
   <script src="/static/js/app.js"></script>
@@ -58,6 +73,10 @@
   </script>
 </body>
 </html>
+
+
+
+
 
 
 

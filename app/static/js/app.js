@@ -20,11 +20,11 @@ window.cargarVuelo = async function (vueloId) {
     const respuesta = await fetch(`/vuelo/${vueloId}`);
     const datos = await respuesta.json();
 
-    if (!datos.puntos || datos.puntos.length === 0) {
+    if (!datos.coordenadas || datos.coordenadas.length === 0) {
       throw new Error("No se encontraron coordenadas para este vuelo");
     }
 
-    if (!datos.tiempos || datos.tiempos.length !== datos.puntos.length) {
+    if (!datos.tiempos || datos.tiempos.length !== datos.coordenadas.length) {
       throw new Error("No se encontraron tiempos válidos para animar la trayectoria");
     }
 
@@ -32,9 +32,23 @@ window.cargarVuelo = async function (vueloId) {
       throw new Error("No se recibió la fecha de inicio del vuelo");
     }
 
-    console.log(`🔹 Cargados ${datos.puntos.length} puntos para vuelo ${vueloId}`);
+    console.log(`🔹 Cargados ${datos.coordenadas.length} puntos para vuelo ${vueloId}`);
 
-    await inicializarCesiumViewer(datos.puntos, datos.tiempos, datos.fecha_inicio);
+    // ✅ Mostrar datos desde datos.resumen
+    const r = datos.resumen;
+    document.getElementById("duracion").textContent = r.duracion_segundos ? (r.duracion_segundos / 60).toFixed(1) : "—";
+    document.getElementById("bateria-inicio").textContent = r.bateria_inicio_porcentaje ?? "—";
+    document.getElementById("bateria-fin").textContent = r.bateria_fin_porcentaje ?? "—";
+    document.getElementById("altitud-maxima").textContent = r.altitud_maxima_metros?.toFixed(1) ?? "—";
+    document.getElementById("distancia-maxima").textContent = r.distancia_maxima_km?.toFixed(2) ?? "—";
+    document.getElementById("distancia-total").textContent = r.distancia_recorrida_km?.toFixed(2) ?? "—";
+    document.getElementById("temperatura-maxima").textContent = r.temperatura_maxima_bateria_c?.toFixed(1) ?? "—";
+    document.getElementById("velocidad-maxima").textContent = r.velocidad_maxima_kmh?.toFixed(1) ?? "—";
+
+    // ✅ Forzar formato ISO 8601 válido para Cesium
+    const fechaIsoZ = datos.fecha_inicio.replace("+00:00", "Z");
+
+    await inicializarCesiumViewer(datos.coordenadas, datos.tiempos, fechaIsoZ);
   } catch (error) {
     alert(`Error inicializando el visualizador 3D\n\n${error.message}`);
     console.error("❌ Error cargando vuelo:", error);
@@ -78,22 +92,21 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
     fullscreenButton: false,
   });
 
-  const puntos = coordenadas.map((p) =>
-    Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt)
+  const puntos = coordenadas.map(([lat, lon, alt]) =>
+    Cesium.Cartesian3.fromDegrees(lon, lat, alt)
   );
 
-  // ✅ Fecha real del vuelo como base
   const start = Cesium.JulianDate.fromIso8601(fechaInicioStr);
   const property = new Cesium.SampledPositionProperty();
   const t0 = tiempos[0];
 
   for (let i = 0; i < puntos.length; i++) {
-    const offsetSeg = (tiempos[i] - t0) / 1000;
+    const offsetSeg = tiempos[i];
     const time = Cesium.JulianDate.addSeconds(start, offsetSeg, new Cesium.JulianDate());
     property.addSample(time, puntos[i]);
   }
 
-  const duracionTotalSeg = (tiempos[tiempos.length - 1] - t0) / 1000;
+  const duracionTotalSeg = tiempos[tiempos.length - 1];
   const stop = Cesium.JulianDate.addSeconds(start, duracionTotalSeg, new Cesium.JulianDate());
 
   viewer.clock.startTime = start.clone();
@@ -124,6 +137,9 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
 
   viewer.zoomTo(viewer.entities);
 }
+
+
+
 
 
 

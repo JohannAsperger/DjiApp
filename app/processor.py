@@ -1,6 +1,7 @@
 import csv
 import os
 import json
+import shutil
 from datetime import datetime
 from math import radians, cos, sin, sqrt, atan2
 
@@ -67,15 +68,30 @@ def procesar_archivo_csv(ruta_archivo):
             except Exception:
                 continue
 
-        # ✅ Guardar todas las filas completas como respaldo futuro
+        # ✅ Batería inicio y fin
+        bateria_inicio = None
+        bateria_fin = None
+        try:
+            valores_bateria = [float(f["battery_percent"]) for f in filas if f["battery_percent"]]
+            if valores_bateria:
+                bateria_inicio = valores_bateria[0]
+                bateria_fin = valores_bateria[-1]
+        except Exception:
+            pass
+
         id_vuelo = os.path.splitext(os.path.basename(ruta_archivo))[0]
         directorio_salida = os.path.join("data/vuelos", id_vuelo)
         os.makedirs(directorio_salida, exist_ok=True)
 
+        # ✅ Guardar CSV original con encabezados
+        ruta_destino_csv = os.path.join(directorio_salida, "datos.csv")
+        shutil.copyfile(ruta_archivo, ruta_destino_csv)
+
+        # ✅ Guardar todas las filas completas como respaldo futuro
         with open(os.path.join(directorio_salida, "raw_data.json"), "w", encoding="utf-8") as f_json:
             json.dump(filas, f_json, ensure_ascii=False, indent=2)
 
-        return {
+        resumen = {
             "id": id_vuelo,
             "fecha": fecha_vuelo,
             "duracion_segundos": round(duracion_segundos, 1),
@@ -86,6 +102,15 @@ def procesar_archivo_csv(ruta_archivo):
             "velocidad_maxima_kmh": round(velocidad_max * 1.60934, 1)
         }
 
+        # ✅ Agregar batería si hay datos válidos
+        if bateria_inicio is not None and bateria_fin is not None:
+            resumen["bateria_inicio_porcentaje"] = round(bateria_inicio, 1)
+            resumen["bateria_fin_porcentaje"] = round(bateria_fin, 1)
+
+        return resumen
+
     except Exception as e:
         print(f"❌ Error procesando {ruta_archivo}: {e}")
         return None
+
+
