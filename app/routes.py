@@ -54,10 +54,12 @@ def obtener_vuelo(vuelo_id):
 
         puntos = []
         tiempos = []
+        fecha_inicio = None
 
         with open(datos_path, 'r', encoding='utf-8') as f:
             reader = csv.reader(f)
-            next(reader)  # salta encabezado
+            encabezados = next(reader)
+            idx_datetime = encabezados.index("datetime(utc)")
 
             for fila in reader:
                 try:
@@ -65,17 +67,20 @@ def obtener_vuelo(vuelo_id):
                     lat = float(fila[2])
                     lon = float(fila[3])
                     alt = float(fila[47])
+
+                    if fecha_inicio is None:
+                        fecha_str = fila[idx_datetime]
+                        dt = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                        fecha_inicio = dt.isoformat().replace("+00:00", "Z")
+
+                    puntos.append([lat, lon, alt])
+                    tiempos.append(tiempo_ms)
                 except (ValueError, IndexError):
                     continue
 
-                puntos.append([lat, lon, alt])
-                tiempos.append(tiempo_ms)
-
-        if not puntos or not tiempos:
+        if not puntos or not tiempos or fecha_inicio is None:
             return jsonify({"error": "No se encontraron datos válidos"}), 400
 
-        # ✅ Fecha de inicio segura y universal desde el timestamp
-        fecha_inicio = datetime.fromtimestamp(tiempos[0] / 1000.0, tz=timezone.utc).isoformat()
         tiempos_rel = [(t - tiempos[0]) / 1000.0 for t in tiempos]
 
         return jsonify({
@@ -89,6 +94,7 @@ def obtener_vuelo(vuelo_id):
     except Exception as e:
         print(f"❌ Error al procesar vuelo {vuelo_id}: {e}")
         return jsonify({"error": "Error interno al procesar el vuelo"}), 500
+
 
 
 
