@@ -78,15 +78,6 @@ async function inicializarCesiumViewer(coordenadas, tiempos) {
     Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt)
   );
 
-  viewer.entities.add({
-    name: "Trayectoria de Vuelo",
-    polyline: {
-      positions: puntos,
-      width: 3,
-      material: Cesium.Color.CYAN,
-    },
-  });
-
   // Esfera animada sincronizada con tiempo real
   const property = new Cesium.SampledPositionProperty();
   const start = Cesium.JulianDate.now();
@@ -120,6 +111,8 @@ async function inicializarCesiumViewer(coordenadas, tiempos) {
     },
     path: {
       resolution: 1,
+      leadTime: 0, // sin línea hacia adelante
+      trailTime: duracionTotalSeg, // trazo visible en tiempo real
       material: Cesium.Color.YELLOW,
       width: 2,
     },
@@ -127,6 +120,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos) {
 
   viewer.zoomTo(viewer.entities);
 }
+
 
 
 
