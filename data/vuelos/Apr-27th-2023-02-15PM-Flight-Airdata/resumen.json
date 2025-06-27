@@ -2,11 +2,11 @@
   "id": "Apr-27th-2023-02-15PM-Flight-Airdata",
   "fecha": "2023-04-27 17:15:15",
   "duracion_segundos": 653.0,
-  "altitud_maxima_metros": 0.0,
-  "distancia_maxima_km": 0,
-  "distancia_recorrida_km": 0,
-  "temperatura_maxima_bateria_c": -17.8,
-  "velocidad_maxima_kmh": 0.0,
+  "altitud_maxima_metros": 59.4,
+  "distancia_maxima_km": 0.139,
+  "distancia_recorrida_km": 0.409,
+  "temperatura_maxima_bateria_c": 35.5,
+  "velocidad_maxima_kmh": 34.3,
   "bateria_inicio_porcentaje": 99.0,
   "bateria_fin_porcentaje": 63.0
 }

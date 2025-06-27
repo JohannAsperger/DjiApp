@@ -29,9 +29,7 @@ def procesar_archivo_csv(ruta_archivo):
         primer_fila = filas[0]
         ultima_fila = filas[-1]
 
-        # ✅ Incluir fecha con hora completa
         fecha_vuelo = primer_fila["datetime(utc)"]
-
         duracion_segundos = int(ultima_fila["time(millisecond)"]) / 1000
 
         coords_home = (
@@ -51,7 +49,7 @@ def procesar_archivo_csv(ruta_archivo):
             try:
                 lat = float(fila["latitude"])
                 lon = float(fila["longitude"])
-                altitud = float(fila["altitude(feet)"])
+                altitud = float(fila["height_above_takeoff(feet)"])  # ✅ Altura relativa
                 velocidad = float(fila["speed(mph)"])
                 temp_f = float(fila["battery_temperature(f)"])
 
@@ -61,7 +59,7 @@ def procesar_archivo_csv(ruta_archivo):
 
                 dist_home = distancia_coord(coords_home[0], coords_home[1], lat, lon)
 
-                if dist_home <= 20:  # ✅ ignorar puntos erróneos
+                if dist_home <= 20:
                     distancia_max_origen = max(distancia_max_origen, dist_home)
 
                     if lat_prev is not None and lon_prev is not None:
@@ -114,6 +112,7 @@ def procesar_archivo_csv(ruta_archivo):
     except Exception as e:
         print(f"❌ Error procesando {ruta_archivo}: {e}")
         return None
+
 
 
 

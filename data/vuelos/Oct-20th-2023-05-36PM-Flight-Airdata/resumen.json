@@ -1,0 +1,12 @@
+{
+  "id": "Oct-20th-2023-05-36PM-Flight-Airdata",
+  "fecha": "2023-10-20 20:36:11",
+  "duracion_segundos": 546.1,
+  "altitud_maxima_metros": 101.1,
+  "distancia_maxima_km": 0.277,
+  "distancia_recorrida_km": 1.895,
+  "temperatura_maxima_bateria_c": 39.2,
+  "velocidad_maxima_kmh": 53.1,
+  "bateria_inicio_porcentaje": 95.0,
+  "bateria_fin_porcentaje": 53.0
+}

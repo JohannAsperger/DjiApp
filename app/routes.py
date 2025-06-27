@@ -80,7 +80,7 @@ def obtener_vuelo(vuelo_id):
                     tiempo_ms = int(fila[0])
                     lat = float(fila[2])
                     lon = float(fila[3])
-                    alt = float(fila[4])  # ✅ Altura relativa al punto de despegue
+                    alt = float(fila[4]) * 0.3048  # ✅ Convertir pies a metros para Cesium
 
                     if fecha_inicio is None:
                         fecha_str = fila[idx_datetime]
@@ -108,6 +108,8 @@ def obtener_vuelo(vuelo_id):
     except Exception as e:
         print(f"❌ Error al procesar vuelo {vuelo_id}: {e}")
         return jsonify({"error": "Error interno al procesar el vuelo"}), 500
+
+
 
 
 

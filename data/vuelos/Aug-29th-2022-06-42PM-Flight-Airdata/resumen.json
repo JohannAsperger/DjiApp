@@ -2,11 +2,11 @@
   "id": "Aug-29th-2022-06-42PM-Flight-Airdata",
   "fecha": "2022-08-29 21:42:50",
   "duracion_segundos": 715.0,
-  "altitud_maxima_metros": 0.0,
-  "distancia_maxima_km": 0,
-  "distancia_recorrida_km": 0,
-  "temperatura_maxima_bateria_c": -17.8,
-  "velocidad_maxima_kmh": 0.0,
+  "altitud_maxima_metros": 106.4,
+  "distancia_maxima_km": 1.154,
+  "distancia_recorrida_km": 3.076,
+  "temperatura_maxima_bateria_c": 39.5,
+  "velocidad_maxima_kmh": 51.4,
   "bateria_inicio_porcentaje": 100.0,
   "bateria_fin_porcentaje": 47.0
 }

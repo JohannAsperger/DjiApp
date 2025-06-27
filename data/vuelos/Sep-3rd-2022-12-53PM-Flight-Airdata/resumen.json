@@ -1,0 +1,12 @@
+{
+  "id": "Sep-3rd-2022-12-53PM-Flight-Airdata",
+  "fecha": "2022-09-03 15:53:55",
+  "duracion_segundos": 877.4,
+  "altitud_maxima_metros": 53.8,
+  "distancia_maxima_km": 0.233,
+  "distancia_recorrida_km": 0.947,
+  "temperatura_maxima_bateria_c": 34.2,
+  "velocidad_maxima_kmh": 32.9,
+  "bateria_inicio_porcentaje": 96.0,
+  "bateria_fin_porcentaje": 44.0
+}

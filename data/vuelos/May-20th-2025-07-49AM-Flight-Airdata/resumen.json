@@ -2,11 +2,11 @@
   "id": "May-20th-2025-07-49AM-Flight-Airdata",
   "fecha": "2025-05-20 10:49:59",
   "duracion_segundos": 621.1,
-  "altitud_maxima_metros": 0.0,
-  "distancia_maxima_km": 0,
-  "distancia_recorrida_km": 0,
-  "temperatura_maxima_bateria_c": -17.8,
-  "velocidad_maxima_kmh": 0.0,
+  "altitud_maxima_metros": 3.9,
+  "distancia_maxima_km": 0.096,
+  "distancia_recorrida_km": 1.048,
+  "temperatura_maxima_bateria_c": 43.8,
+  "velocidad_maxima_kmh": 30.1,
   "bateria_inicio_porcentaje": 67.0,
   "bateria_fin_porcentaje": 41.0
 }
