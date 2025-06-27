@@ -1,0 +1,12 @@
+{
+  "id": "Jan-4th-2023-07-39PM-Flight-Airdata",
+  "fecha": "2023-01-04 22:39:14",
+  "duracion_segundos": 319.9,
+  "altitud_maxima_metros": 36.9,
+  "distancia_maxima_km": 0.54,
+  "distancia_recorrida_km": 1.524,
+  "temperatura_maxima_bateria_c": 37.1,
+  "velocidad_maxima_kmh": 37.8,
+  "bateria_inicio_porcentaje": 50.0,
+  "bateria_fin_porcentaje": 26.0
+}

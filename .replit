@@ -3,7 +3,7 @@ modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["glibcLocales", "pdm", "tree"]
+packages = ["glibcLocales", "mailutils", "pdm", "tree"]
 
 [unitTest]
 language = "python3"

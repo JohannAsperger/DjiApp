@@ -1,4 +1,7 @@
 let viewer = null;
+let entity = null;
+let gaugeVelocidad = null;
+let gaugeAltitud = null;
 
 window.cargarVuelo = async function (vueloId) {
   console.log("Cargando vuelo...", vueloId);
@@ -6,6 +9,7 @@ window.cargarVuelo = async function (vueloId) {
   const resumen = document.getElementById("resumen");
   const detalleVuelo = document.getElementById("detalle-vuelo");
   const cesiumContainer = document.getElementById("cesiumContainer");
+  const infoDron = document.getElementById("info-dron");
 
   if (!resumen || !detalleVuelo || !cesiumContainer) {
     console.error("❌ No se encontró uno de los contenedores en el DOM");
@@ -15,6 +19,7 @@ window.cargarVuelo = async function (vueloId) {
   resumen.style.display = "none";
   detalleVuelo.style.display = "block";
   cesiumContainer.style.display = "block";
+  if (infoDron) infoDron.style.display = "block";
 
   try {
     const respuesta = await fetch(`/vuelo/${vueloId}`);
@@ -44,6 +49,36 @@ window.cargarVuelo = async function (vueloId) {
     document.getElementById("temperatura-maxima").textContent = r.temperatura_maxima_bateria_c?.toFixed(1) ?? "—";
     document.getElementById("velocidad-maxima").textContent = r.velocidad_maxima_kmh?.toFixed(1) ?? "—";
 
+    if (!gaugeVelocidad) {
+      gaugeVelocidad = new JustGage({
+        id: "gauge-velocidad",
+        value: 0,
+        min: 0,
+        max: 100,
+        title: "",
+        label: "km/h",
+        pointer: true,
+        gaugeWidthScale: 0.6,
+        levelColors: ["#5eead4", "#60a5fa", "#facc15"],
+        customSectors: [{ color: "#dc2626", lo: 90, hi: 100 }]
+      });
+    }
+
+    if (!gaugeAltitud) {
+      gaugeAltitud = new JustGage({
+        id: "gauge-altitud",
+        value: 0,
+        min: 0,
+        max: 500,
+        title: "",
+        label: "m",
+        pointer: true,
+        gaugeWidthScale: 0.6,
+        levelColors: ["#a5f3fc", "#93c5fd", "#fde68a"],
+        customSectors: [{ color: "#dc2626", lo: 450, hi: 500 }]
+      });
+    }
+
     const fechaIsoZ = datos.fecha_inicio.replace("+00:00", "Z");
 
     await inicializarCesiumViewer(datos.coordenadas, datos.tiempos, fechaIsoZ);
@@ -57,11 +92,13 @@ window.volverAlResumen = function () {
   const resumen = document.getElementById("resumen");
   const detalleVuelo = document.getElementById("detalle-vuelo");
   const cesiumContainer = document.getElementById("cesiumContainer");
+  const infoDron = document.getElementById("info-dron");
 
   if (!resumen || !detalleVuelo || !cesiumContainer) return;
 
   detalleVuelo.style.display = "none";
   cesiumContainer.style.display = "none";
+  if (infoDron) infoDron.style.display = "none";
   resumen.style.display = "block";
 };
 
@@ -74,7 +111,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
   Cesium.Ion.defaultAccessToken =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk0M2RjOC0xYzc5LTQyZTgtOTMzYy1iOGMzOGMyMjFkNGIiLCJpZCI6MzEyMjA4LCJpYXQiOjE3NDk5MjM2OTZ9.hNylnne1DsKBD6JknfqBaB0NwC2YeRd2B0LqiCryCxM";
 
-  const terrain = new Cesium.EllipsoidTerrainProvider(); // 👈 Terreno plano
+  const terrain = new Cesium.EllipsoidTerrainProvider();
 
   viewer = new Cesium.Viewer("cesiumContainer", {
     terrainProvider: terrain,
@@ -96,7 +133,6 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
 
   const start = Cesium.JulianDate.fromIso8601(fechaInicioStr);
   const property = new Cesium.SampledPositionProperty();
-  const t0 = tiempos[0];
 
   for (let i = 0; i < puntos.length; i++) {
     const offsetSeg = tiempos[i];
@@ -115,7 +151,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
   viewer.clock.shouldAnimate = true;
   viewer.timeline.zoomTo(start, stop);
 
-  viewer.entities.add({
+  entity = viewer.entities.add({
     availability: new Cesium.TimeIntervalCollection([
       new Cesium.TimeInterval({ start, stop }),
     ]),
@@ -133,8 +169,28 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
     },
   });
 
+  viewer.clock.onTick.addEventListener(function (clock) {
+    if (!entity) return;
+    const position = entity.position.getValue(clock.currentTime);
+    if (position) {
+      const carto = Cesium.Cartographic.fromCartesian(position);
+      const altitud = carto.height.toFixed(1);
+
+      const currentTimeSeconds = Cesium.JulianDate.secondsDifference(clock.currentTime, start);
+      const idx = tiempos.findIndex(t => t >= currentTimeSeconds);
+      const velocidad = idx > 0 ?
+        (Cesium.Cartesian3.distance(puntos[idx], puntos[idx - 1]) / (tiempos[idx] - tiempos[idx - 1])) * 3.6 : 0;
+
+      if (gaugeVelocidad) gaugeVelocidad.refresh(velocidad);
+      if (gaugeAltitud) gaugeAltitud.refresh(parseFloat(altitud));
+    }
+  });
+
   viewer.zoomTo(viewer.entities);
 }
+
+
+
 
 
 

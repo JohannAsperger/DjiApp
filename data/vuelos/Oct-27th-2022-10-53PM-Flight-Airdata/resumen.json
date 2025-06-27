@@ -1,0 +1,12 @@
+{
+  "id": "Oct-27th-2022-10-53PM-Flight-Airdata",
+  "fecha": "2022-10-28 01:53:48",
+  "duracion_segundos": 581.8,
+  "altitud_maxima_metros": 38.0,
+  "distancia_maxima_km": 0.006,
+  "distancia_recorrida_km": 0.087,
+  "temperatura_maxima_bateria_c": 40.4,
+  "velocidad_maxima_kmh": 10.8,
+  "bateria_inicio_porcentaje": 82.0,
+  "bateria_fin_porcentaje": 46.0
+}

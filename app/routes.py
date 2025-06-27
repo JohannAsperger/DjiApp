@@ -17,9 +17,23 @@ def index():
             with open(resumen_path, "r", encoding="utf-8") as f:
                 resumen = json.load(f)
                 resumen["id"] = vuelo_id
+
+                try:
+                    fecha_dt = datetime.strptime(resumen["fecha"], "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    try:
+                        fecha_dt = datetime.strptime(resumen["fecha"], "%Y-%m-%d")
+                    except:
+                        continue
+
+                resumen["fecha_dt"] = fecha_dt
                 vuelos.append(resumen)
 
-    # Calcular resumen general
+    vuelos.sort(key=lambda x: x["fecha_dt"], reverse=True)
+
+    for v in vuelos:
+        v["fecha_mostrar"] = v["fecha_dt"].strftime("%Y-%m-%d %H:%M")
+
     cantidad_vuelos = len(vuelos)
     duracion_total = sum(v.get("duracion_segundos", 0) for v in vuelos)
     distancia_total = sum(v.get("distancia_recorrida_km", 0) for v in vuelos)
@@ -66,7 +80,7 @@ def obtener_vuelo(vuelo_id):
                     tiempo_ms = int(fila[0])
                     lat = float(fila[2])
                     lon = float(fila[3])
-                    alt = float(fila[47])
+                    alt = float(fila[4])  # ✅ Altura relativa al punto de despegue
 
                     if fecha_inicio is None:
                         fecha_str = fila[idx_datetime]
@@ -94,6 +108,8 @@ def obtener_vuelo(vuelo_id):
     except Exception as e:
         print(f"❌ Error al procesar vuelo {vuelo_id}: {e}")
         return jsonify({"error": "Error interno al procesar el vuelo"}), 500
+
+
 
 
 

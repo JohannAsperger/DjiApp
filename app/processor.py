@@ -29,7 +29,9 @@ def procesar_archivo_csv(ruta_archivo):
         primer_fila = filas[0]
         ultima_fila = filas[-1]
 
-        fecha_vuelo = primer_fila["datetime(utc)"][:10]  # formato 'YYYY-MM-DD'
+        # ✅ Incluir fecha con hora completa
+        fecha_vuelo = primer_fila["datetime(utc)"]
+
         duracion_segundos = int(ultima_fila["time(millisecond)"]) / 1000
 
         coords_home = (
@@ -58,17 +60,20 @@ def procesar_archivo_csv(ruta_archivo):
                 temperatura_max = max(temperatura_max, temp_f)
 
                 dist_home = distancia_coord(coords_home[0], coords_home[1], lat, lon)
-                distancia_max_origen = max(distancia_max_origen, dist_home)
 
-                if lat_prev is not None and lon_prev is not None:
-                    distancia_total += distancia_coord(lat_prev, lon_prev, lat, lon)
+                if dist_home <= 20:  # ✅ ignorar puntos erróneos
+                    distancia_max_origen = max(distancia_max_origen, dist_home)
 
-                lat_prev, lon_prev = lat, lon
+                    if lat_prev is not None and lon_prev is not None:
+                        dist_segmento = distancia_coord(lat_prev, lon_prev, lat, lon)
+                        if dist_segmento <= 20:
+                            distancia_total += dist_segmento
+
+                    lat_prev, lon_prev = lat, lon
 
             except Exception:
                 continue
 
-        # ✅ Batería inicio y fin
         bateria_inicio = None
         bateria_fin = None
         try:
@@ -83,11 +88,9 @@ def procesar_archivo_csv(ruta_archivo):
         directorio_salida = os.path.join("data/vuelos", id_vuelo)
         os.makedirs(directorio_salida, exist_ok=True)
 
-        # ✅ Guardar CSV original con encabezados
         ruta_destino_csv = os.path.join(directorio_salida, "datos.csv")
         shutil.copyfile(ruta_archivo, ruta_destino_csv)
 
-        # ✅ Guardar todas las filas completas como respaldo futuro
         with open(os.path.join(directorio_salida, "raw_data.json"), "w", encoding="utf-8") as f_json:
             json.dump(filas, f_json, ensure_ascii=False, indent=2)
 
@@ -102,7 +105,6 @@ def procesar_archivo_csv(ruta_archivo):
             "velocidad_maxima_kmh": round(velocidad_max * 1.60934, 1)
         }
 
-        # ✅ Agregar batería si hay datos válidos
         if bateria_inicio is not None and bateria_fin is not None:
             resumen["bateria_inicio_porcentaje"] = round(bateria_inicio, 1)
             resumen["bateria_fin_porcentaje"] = round(bateria_fin, 1)
@@ -112,5 +114,7 @@ def procesar_archivo_csv(ruta_archivo):
     except Exception as e:
         print(f"❌ Error procesando {ruta_archivo}: {e}")
         return None
+
+
 
 
