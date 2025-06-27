@@ -51,33 +51,10 @@
       width: 100%;
       height: 500px;
       display: none;
+      transition: height 0.3s ease;
     }
-
-    /* Scrollbar moderno y oscuro para #lista-vuelos */
-    #lista-vuelos::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    #lista-vuelos::-webkit-scrollbar-track {
-      background-color: rgba(255, 255, 255, 0.05);
-      border-radius: 100px;
-    }
-
-    #lista-vuelos::-webkit-scrollbar-thumb {
-      background-color: rgba(59, 130, 246, 0.5); /* azul suave */
-      border-radius: 100px;
-      border: 2px solid transparent;
-      background-clip: content-box;
-    }
-
-    #lista-vuelos:hover::-webkit-scrollbar-thumb {
-      background-color: rgba(59, 130, 246, 0.8);
-    }
-
-    /* Firefox */
-    #lista-vuelos {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(59, 130, 246, 0.6) rgba(255, 255, 255, 0.05);
+    .expanded-cesium {
+      height: 800px !important;
     }
   </style>
 </head>
@@ -95,7 +72,6 @@
       <h1 class="text-4xl font-bold text-center mb-10 text-text-light dark:text-text-dark">FlightScope</h1>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        <!-- tarjetas resumen -->
         <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Cantidad total de vuelos</p><p class="text-2xl font-semibold text-brand">{{ resumen_general.cantidad_vuelos }}</p></div>
         <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Duración total de vuelo</p><p class="text-2xl font-semibold">{{ resumen_general.duracion_total_min }} min</p></div>
         <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Distancia total recorrida</p><p class="text-2xl font-semibold">{{ resumen_general.distancia_total_km }} km</p></div>
@@ -105,18 +81,18 @@
         <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Velocidad máxima</p><p class="text-2xl font-semibold">{{ resumen_general.velocidad_maxima_kmh }} km/h</p></div>
       </div>
 
+      <!-- Vuelos con tarjetas -->
       <div>
-        <h2 class="text-2xl font-bold mb-4">Vuelos</h2>
-        <div class="bg-card-light dark:bg-card-dark rounded-xl shadow-inner p-4 max-h-96 overflow-y-auto">
-          <ul id="lista-vuelos" class="space-y-2 text-sm">
-            {% for vuelo in vuelos %}
-              <li>
-                <a href="#" class="enlace-vuelo text-brand hover:underline" data-vuelo="{{ vuelo.id }}">
-                  {{ vuelo.fecha_mostrar }} — {{ (vuelo.duracion_segundos / 60) | round(1) }} min
-                </a>
-              </li>
-            {% endfor %}
-          </ul>
+        <h2 class="text-2xl font-bold text-center mb-6">Vuelos</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {% for vuelo in vuelos %}
+            <a href="#" class="enlace-vuelo block bg-card-light dark:bg-card-dark p-4 rounded-xl shadow hover:ring-2 hover:ring-brand transition" data-vuelo="{{ vuelo.id }}">
+              <div class="text-lg text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</div>
+              <div class="text-lg font-semibold text-brand flex items-center gap-2 mt-1">
+                ⏱ {{ (vuelo.duracion_segundos / 60) | round(1) }} min
+              </div>
+            </a>
+          {% endfor %}
         </div>
       </div>
     </section>
@@ -127,9 +103,13 @@
         ← Inicio
       </button>
 
+      <!-- Botón expandir -->
+      <div class="flex justify-end mb-2">
+        <button onclick="toggleCesiumSize()" class="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded-md shadow text-xs">↕ Expandir visor</button>
+      </div>
+
       <div id="cesiumContainer" class="rounded-xl overflow-hidden mb-8"></div>
 
-      <!-- GAUGES -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
         <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow w-full flex flex-col items-center">
           <h4 class="text-sm text-gray-400 mb-3 text-center">Velocidad (km/h)</h4>
@@ -146,8 +126,8 @@
       </div>
 
       <div class="bg-card-light dark:bg-card-dark rounded-2xl p-6 shadow border border-gray-700">
-        <h3 class="text-2xl font-bold mb-6">Detalles del vuelo</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-12">
+        <h3 class="text-2xl font-bold mb-6 text-center">Detalles del vuelo</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-12 max-w-2xl mx-auto">
           <div><span class="font-medium">Duración:</span> <span id="duracion"></span> min</div>
           <div><span class="font-medium">Batería al inicio:</span> <span id="bateria-inicio"></span>%</div>
           <div><span class="font-medium">Batería al final:</span> <span id="bateria-fin"></span>%</div>
@@ -161,9 +141,13 @@
     </section>
   </main>
 
-  <!-- JS -->
   <script src="/static/js/app.js"></script>
   <script>
+    function toggleCesiumSize() {
+      const container = document.getElementById('cesiumContainer');
+      container.classList.toggle('expanded-cesium');
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(".enlace-vuelo").forEach((el) => {
         el.addEventListener("click", (event) => {
@@ -203,6 +187,11 @@
   </script>
 </body>
 </html>
+
+
+
+
+
 
 
 

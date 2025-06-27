@@ -32,7 +32,7 @@ def index():
     vuelos.sort(key=lambda x: x["fecha_dt"], reverse=True)
 
     for v in vuelos:
-        v["fecha_mostrar"] = v["fecha_dt"].strftime("%Y-%m-%d %H:%M")
+        v["fecha_mostrar"] = v["fecha_dt"].strftime("%d/%m/%Y %H:%M")
 
     cantidad_vuelos = len(vuelos)
     duracion_total = sum(v.get("duracion_segundos", 0) for v in vuelos)
@@ -113,6 +113,7 @@ def obtener_vuelo(vuelo_id):
     except Exception as e:
         print(f"❌ Error al procesar vuelo {vuelo_id}: {e}")
         return jsonify({"error": "Error interno al procesar el vuelo"}), 500
+
 
 
 
