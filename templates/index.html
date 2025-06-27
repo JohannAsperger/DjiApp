@@ -52,13 +52,39 @@
       height: 500px;
       display: none;
     }
+
+    /* Scrollbar moderno y oscuro para #lista-vuelos */
+    #lista-vuelos::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #lista-vuelos::-webkit-scrollbar-track {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 100px;
+    }
+
+    #lista-vuelos::-webkit-scrollbar-thumb {
+      background-color: rgba(59, 130, 246, 0.5); /* azul suave */
+      border-radius: 100px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+
+    #lista-vuelos:hover::-webkit-scrollbar-thumb {
+      background-color: rgba(59, 130, 246, 0.8);
+    }
+
+    /* Firefox */
+    #lista-vuelos {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(59, 130, 246, 0.6) rgba(255, 255, 255, 0.05);
+    }
   </style>
 </head>
 <body class="font-sans min-h-screen transition-colors duration-500 bg-background-light text-text-light dark:bg-background-dark dark:text-text-dark">
 
   <!-- Toggle theme -->
-  <button onclick="toggleTheme()"
-    class="fixed top-4 right-4 z-50 bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded-md shadow text-sm sm:text-base">
+  <button onclick="toggleTheme()" class="fixed top-4 right-4 z-50 bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded-md shadow text-sm sm:text-base">
     <span id="theme-icon">🌙</span> Cambiar tema
   </button>
 
@@ -69,41 +95,19 @@
       <h1 class="text-4xl font-bold text-center mb-10 text-text-light dark:text-text-dark">Resumen de Vuelos</h1>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        <!-- Tarjetas -->
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
-          <p class="text-sm text-gray-400">Cantidad total de vuelos</p>
-          <p class="text-2xl font-semibold text-brand">{{ resumen_general.cantidad_vuelos }}</p>
-        </div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
-          <p class="text-sm text-gray-400">Duración total de vuelo</p>
-          <p class="text-2xl font-semibold">{{ resumen_general.duracion_total_min }} min</p>
-        </div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
-          <p class="text-sm text-gray-400">Distancia total recorrida</p>
-          <p class="text-2xl font-semibold">{{ resumen_general.distancia_total_km }} km</p>
-        </div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
-          <p class="text-sm text-gray-400">Distancia máxima desde origen</p>
-          <p class="text-2xl font-semibold">{{ resumen_general.distancia_maxima_km }} km</p>
-        </div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
-          <p class="text-sm text-gray-400">Altitud máxima alcanzada</p>
-          <p class="text-2xl font-semibold">{{ resumen_general.altitud_maxima_metros }} m</p>
-        </div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
-          <p class="text-sm text-gray-400">Temperatura máxima batería</p>
-          <p class="text-2xl font-semibold">{{ resumen_general.temperatura_maxima_bateria_c }} °C</p>
-        </div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
-          <p class="text-sm text-gray-400">Velocidad máxima</p>
-          <p class="text-2xl font-semibold">{{ resumen_general.velocidad_maxima_kmh }} km/h</p>
-        </div>
+        <!-- tarjetas resumen -->
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Cantidad total de vuelos</p><p class="text-2xl font-semibold text-brand">{{ resumen_general.cantidad_vuelos }}</p></div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Duración total de vuelo</p><p class="text-2xl font-semibold">{{ resumen_general.duracion_total_min }} min</p></div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Distancia total recorrida</p><p class="text-2xl font-semibold">{{ resumen_general.distancia_total_km }} km</p></div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Distancia máxima desde origen</p><p class="text-2xl font-semibold">{{ resumen_general.distancia_maxima_km }} km</p></div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Altitud máxima alcanzada</p><p class="text-2xl font-semibold">{{ resumen_general.altitud_maxima_metros }} m</p></div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Temperatura máxima batería</p><p class="text-2xl font-semibold">{{ resumen_general.temperatura_maxima_bateria_c }} °C</p></div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Velocidad máxima</p><p class="text-2xl font-semibold">{{ resumen_general.velocidad_maxima_kmh }} km/h</p></div>
       </div>
 
-      <!-- Lista de vuelos -->
       <div>
         <h2 class="text-2xl font-bold mb-4">Vuelos</h2>
-        <div class="bg-card-light dark:bg-card-dark rounded-xl shadow-inner p-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-brand scrollbar-track-gray-700">
+        <div class="bg-card-light dark:bg-card-dark rounded-xl shadow-inner p-4 max-h-96 overflow-y-auto">
           <ul id="lista-vuelos" class="space-y-2 text-sm">
             {% for vuelo in vuelos %}
               <li>
@@ -125,14 +129,19 @@
 
       <div id="cesiumContainer" class="rounded-xl overflow-hidden mb-8"></div>
 
-      <div class="flex justify-center gap-10 mb-10">
-        <div>
-          <h4 class="text-center text-sm text-gray-400 mb-2">Velocidad (km/h)</h4>
+      <!-- GAUGES -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow w-full flex flex-col items-center">
+          <h4 class="text-sm text-gray-400 mb-3 text-center">Velocidad (km/h)</h4>
           <div id="gauge-velocidad" class="w-[150px] h-[120px]"></div>
         </div>
-        <div>
-          <h4 class="text-center text-sm text-gray-400 mb-2">Altitud (m)</h4>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow w-full flex flex-col items-center">
+          <h4 class="text-sm text-gray-400 mb-3 text-center">Altitud (m)</h4>
           <div id="gauge-altitud" class="w-[150px] h-[120px]"></div>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow w-full flex flex-col items-center">
+          <h4 class="text-sm text-gray-400 mb-3 text-center">Batería (%)</h4>
+          <div id="gauge-bateria" class="w-[150px] h-[120px]"></div>
         </div>
       </div>
 
@@ -194,6 +203,7 @@
   </script>
 </body>
 </html>
+
 
 
 

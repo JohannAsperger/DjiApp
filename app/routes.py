@@ -68,19 +68,22 @@ def obtener_vuelo(vuelo_id):
 
         puntos = []
         tiempos = []
+        baterias = []
         fecha_inicio = None
 
         with open(datos_path, 'r', encoding='utf-8') as f:
             reader = csv.reader(f)
             encabezados = next(reader)
             idx_datetime = encabezados.index("datetime(utc)")
+            idx_bateria = encabezados.index("battery_percent")
 
             for fila in reader:
                 try:
                     tiempo_ms = int(fila[0])
                     lat = float(fila[2])
                     lon = float(fila[3])
-                    alt = float(fila[4]) * 0.3048  # ✅ Convertir pies a metros para Cesium
+                    alt = float(fila[4]) * 0.3048  # pies a metros
+                    bat = int(fila[idx_bateria])
 
                     if fecha_inicio is None:
                         fecha_str = fila[idx_datetime]
@@ -89,6 +92,7 @@ def obtener_vuelo(vuelo_id):
 
                     puntos.append([lat, lon, alt])
                     tiempos.append(tiempo_ms)
+                    baterias.append(bat)
                 except (ValueError, IndexError):
                     continue
 
@@ -102,12 +106,14 @@ def obtener_vuelo(vuelo_id):
             "fecha_inicio": fecha_inicio,
             "coordenadas": puntos,
             "tiempos": tiempos_rel,
+            "baterias": baterias,
             "resumen": resumen
         })
 
     except Exception as e:
         print(f"❌ Error al procesar vuelo {vuelo_id}: {e}")
         return jsonify({"error": "Error interno al procesar el vuelo"}), 500
+
 
 
 

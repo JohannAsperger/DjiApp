@@ -2,6 +2,7 @@ let viewer = null;
 let entity = null;
 let gaugeVelocidad = null;
 let gaugeAltitud = null;
+let gaugeBateria = null;
 
 window.cargarVuelo = async function (vueloId) {
   console.log("Cargando vuelo...", vueloId);
@@ -79,9 +80,24 @@ window.cargarVuelo = async function (vueloId) {
       });
     }
 
+    if (!gaugeBateria) {
+      gaugeBateria = new JustGage({
+        id: "gauge-bateria",
+        value: 100,
+        min: 0,
+        max: 100,
+        title: "",
+        label: "%",
+        pointer: true,
+        gaugeWidthScale: 0.6,
+        levelColors: ["#f87171", "#facc15", "#4ade80"],
+        customSectors: [{ color: "#dc2626", lo: 10, hi: 30 }]
+      });
+    }
+
     const fechaIsoZ = datos.fecha_inicio.replace("+00:00", "Z");
 
-    await inicializarCesiumViewer(datos.coordenadas, datos.tiempos, fechaIsoZ);
+    await inicializarCesiumViewer(datos.coordenadas, datos.tiempos, fechaIsoZ, datos.baterias);
   } catch (error) {
     alert(`Error inicializando el visualizador 3D\n\n${error.message}`);
     console.error("❌ Error cargando vuelo:", error);
@@ -102,7 +118,7 @@ window.volverAlResumen = function () {
   resumen.style.display = "block";
 };
 
-async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
+async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr, baterias) {
   if (viewer) {
     viewer.destroy();
     viewer = null;
@@ -127,7 +143,6 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
     fullscreenButton: false,
   });
 
-  // Activar antialiasing (suavizado visual)
   viewer.scene.fxaa = true;
   viewer.scene.postProcessStages.fxaa.enabled = true;
   viewer.scene.requestRenderMode = false;
@@ -139,7 +154,6 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
   const start = Cesium.JulianDate.fromIso8601(fechaInicioStr);
   const property = new Cesium.SampledPositionProperty();
 
-  // Interpolación suave entre puntos
   property.setInterpolationOptions({
     interpolationAlgorithm: Cesium.HermitePolynomialApproximation,
     interpolationDegree: 3,
@@ -158,7 +172,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
   viewer.clock.stopTime = stop.clone();
   viewer.clock.currentTime = start.clone();
   viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
-  viewer.clock.multiplier = 0.5; // Animación más lenta y suave
+  viewer.clock.multiplier = 1.0;
   viewer.clock.shouldAnimate = true;
   viewer.timeline.zoomTo(start, stop);
 
@@ -194,11 +208,16 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
 
       if (gaugeVelocidad) gaugeVelocidad.refresh(velocidad);
       if (gaugeAltitud) gaugeAltitud.refresh(parseFloat(altitud));
+      if (gaugeBateria && baterias && baterias.length > idx && idx >= 0) {
+        gaugeBateria.refresh(Math.round(baterias[idx]));
+      }
     }
   });
 
   viewer.zoomTo(viewer.entities);
 }
+
+
 
 
 
