@@ -127,12 +127,23 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
     fullscreenButton: false,
   });
 
+  // Activar antialiasing (suavizado visual)
+  viewer.scene.fxaa = true;
+  viewer.scene.postProcessStages.fxaa.enabled = true;
+  viewer.scene.requestRenderMode = false;
+
   const puntos = coordenadas.map(([lat, lon, alt]) =>
     Cesium.Cartesian3.fromDegrees(lon, lat, alt)
   );
 
   const start = Cesium.JulianDate.fromIso8601(fechaInicioStr);
   const property = new Cesium.SampledPositionProperty();
+
+  // Interpolación suave entre puntos
+  property.setInterpolationOptions({
+    interpolationAlgorithm: Cesium.HermitePolynomialApproximation,
+    interpolationDegree: 3,
+  });
 
   for (let i = 0; i < puntos.length; i++) {
     const offsetSeg = tiempos[i];
@@ -147,7 +158,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
   viewer.clock.stopTime = stop.clone();
   viewer.clock.currentTime = start.clone();
   viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
-  viewer.clock.multiplier = 1;
+  viewer.clock.multiplier = 0.5; // Animación más lenta y suave
   viewer.clock.shouldAnimate = true;
   viewer.timeline.zoomTo(start, stop);
 
@@ -188,6 +199,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr) {
 
   viewer.zoomTo(viewer.entities);
 }
+
 
 
 

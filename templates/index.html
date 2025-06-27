@@ -2,27 +2,47 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Resumen de Vuelos</title>
+  <title>DJIApp | Resumen de Vuelos</title>
 
-  <!-- ✅ TailwindCSS via CDN -->
+  <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#3b82f6',
+              dark: '#2563eb',
+              light: '#93c5fd',
+            },
+            background: {
+              dark: '#0f172a',
+              light: '#f8fafc',
+            },
+            card: {
+              dark: '#1e293b',
+              light: '#ffffff',
+            },
+            text: {
+              dark: '#f1f5f9',
+              light: '#1e293b',
+            },
           },
         },
       },
     };
   </script>
 
-  <!-- ✅ Cesium -->
+  <!-- Cesium -->
   <link href="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
   <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
 
-  <!-- ✅ JustGage + Raphael -->
+  <!-- JustGage -->
   <script src="https://cdn.jsdelivr.net/npm/raphael@2.3.0/raphael.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/justgage@1.3.5/justgage.min.js"></script>
 
@@ -34,90 +54,154 @@
     }
   </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800">
-  <!-- Resumen general -->
-  <div id="resumen" class="max-w-4xl mx-auto py-10 px-6">
-    <h1 class="text-3xl font-bold mb-6 text-center">Resumen de Vuelos</h1>
+<body class="font-sans min-h-screen transition-colors duration-500 bg-background-light text-text-light dark:bg-background-dark dark:text-text-dark">
 
-    <div class="bg-white shadow rounded-lg p-6 mb-8">
-      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
-        <li><strong>Cantidad total de vuelos:</strong> {{ resumen_general.cantidad_vuelos }}</li>
-        <li><strong>Duración total de vuelo:</strong> {{ resumen_general.duracion_total_min }} minutos</li>
-        <li><strong>Distancia recorrida total:</strong> {{ resumen_general.distancia_total_km }} km</li>
-        <li><strong>Distancia máxima desde el origen:</strong> {{ resumen_general.distancia_maxima_km }} km</li>
-        <li><strong>Altitud máxima alcanzada:</strong> {{ resumen_general.altitud_maxima_metros }} metros</li>
-        <li><strong>Temperatura máxima de batería:</strong> {{ resumen_general.temperatura_maxima_bateria_c }} °C</li>
-        <li><strong>Velocidad máxima alcanzada:</strong> {{ resumen_general.velocidad_maxima_kmh }} km/h</li>
-      </ul>
-    </div>
+  <!-- Toggle theme -->
+  <button onclick="toggleTheme()"
+    class="fixed top-4 right-4 z-50 bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded-md shadow text-sm sm:text-base">
+    <span id="theme-icon">🌙</span> Cambiar tema
+  </button>
 
-    <h2 class="text-2xl font-semibold mb-4">Vuelos</h2>
-    <div class="bg-white shadow rounded-lg p-4 max-h-96 overflow-y-auto border border-gray-200">
-      <ul id="lista-vuelos" class="space-y-2">
-        {% for vuelo in vuelos %}
-          <li>
-            <a href="#" class="enlace-vuelo text-blue-600 hover:underline" data-vuelo="{{ vuelo.id }}">
-              {{ vuelo.fecha_mostrar }} — {{ (vuelo.duracion_segundos / 60) | round(1) }} min
-            </a>
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
+  <!-- Contenido principal -->
+  <main class="max-w-6xl mx-auto px-4 py-12">
+    <!-- Resumen -->
+    <section id="resumen">
+      <h1 class="text-4xl font-bold text-center mb-10 text-text-light dark:text-text-dark">Resumen de Vuelos</h1>
 
-  <!-- Detalle de vuelo -->
-  <div id="detalle-vuelo" class="max-w-5xl mx-auto px-6 py-10" style="display: none;">
-    <button onclick="window.volverAlResumen()" class="mb-4 text-blue-600 hover:underline">← Volver al resumen</button>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        <!-- Tarjetas -->
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
+          <p class="text-sm text-gray-400">Cantidad total de vuelos</p>
+          <p class="text-2xl font-semibold text-brand">{{ resumen_general.cantidad_vuelos }}</p>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
+          <p class="text-sm text-gray-400">Duración total de vuelo</p>
+          <p class="text-2xl font-semibold">{{ resumen_general.duracion_total_min }} min</p>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
+          <p class="text-sm text-gray-400">Distancia total recorrida</p>
+          <p class="text-2xl font-semibold">{{ resumen_general.distancia_total_km }} km</p>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
+          <p class="text-sm text-gray-400">Distancia máxima desde origen</p>
+          <p class="text-2xl font-semibold">{{ resumen_general.distancia_maxima_km }} km</p>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
+          <p class="text-sm text-gray-400">Altitud máxima alcanzada</p>
+          <p class="text-2xl font-semibold">{{ resumen_general.altitud_maxima_metros }} m</p>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
+          <p class="text-sm text-gray-400">Temperatura máxima batería</p>
+          <p class="text-2xl font-semibold">{{ resumen_general.temperatura_maxima_bateria_c }} °C</p>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md">
+          <p class="text-sm text-gray-400">Velocidad máxima</p>
+          <p class="text-2xl font-semibold">{{ resumen_general.velocidad_maxima_kmh }} km/h</p>
+        </div>
+      </div>
 
-    <div id="cesiumContainer" class="rounded-lg overflow-hidden mb-6"></div>
-
-    <!-- Instrumentos -->
-    <div class="flex justify-center gap-10 mb-8">
+      <!-- Lista de vuelos -->
       <div>
-        <h4 class="text-center text-sm font-medium mb-1">Velocidad (km/h)</h4>
-        <div id="gauge-velocidad" class="w-[150px] h-[120px]"></div>
+        <h2 class="text-2xl font-bold mb-4">Vuelos</h2>
+        <div class="bg-card-light dark:bg-card-dark rounded-xl shadow-inner p-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-brand scrollbar-track-gray-700">
+          <ul id="lista-vuelos" class="space-y-2 text-sm">
+            {% for vuelo in vuelos %}
+              <li>
+                <a href="#" class="enlace-vuelo text-brand hover:underline" data-vuelo="{{ vuelo.id }}">
+                  {{ vuelo.fecha_mostrar }} — {{ (vuelo.duracion_segundos / 60) | round(1) }} min
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
-      <div>
-        <h4 class="text-center text-sm font-medium mb-1">Altitud (m)</h4>
-        <div id="gauge-altitud" class="w-[150px] h-[120px]"></div>
-      </div>
-    </div>
+    </section>
 
-    <div id="info-vuelo" class="bg-white shadow-lg rounded-xl p-6 border border-gray-200">
-      <h3 class="text-2xl font-semibold text-gray-800 mb-6">Detalles del vuelo</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-12 text-gray-700">
-        <div><span class="font-medium text-gray-900">Duración:</span> <span id="duracion"></span> minutos</div>
-        <div><span class="font-medium text-gray-900">Batería al inicio:</span> <span id="bateria-inicio"></span>%</div>
-        <div><span class="font-medium text-gray-900">Batería al final:</span> <span id="bateria-fin"></span>%</div>
-        <div><span class="font-medium text-gray-900">Altitud máxima:</span> <span id="altitud-maxima"></span> m</div>
-        <div><span class="font-medium text-gray-900">Distancia máxima desde origen:</span> <span id="distancia-maxima"></span> km</div>
-        <div><span class="font-medium text-gray-900">Distancia total recorrida:</span> <span id="distancia-total"></span> km</div>
-        <div><span class="font-medium text-gray-900">Temperatura máxima batería:</span> <span id="temperatura-maxima"></span> °C</div>
-        <div><span class="font-medium text-gray-900">Velocidad máxima alcanzada:</span> <span id="velocidad-maxima"></span> km/h</div>
-      </div>
-    </div>
-  </div>
+    <!-- Detalle -->
+    <section id="detalle-vuelo" class="pt-12" style="display: none;">
+      <button onclick="window.volverAlResumen()" class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white font-semibold px-4 py-2 rounded-lg shadow transition mb-6">
+        ← Volver al resumen
+      </button>
 
-  <!-- JS principal -->
+      <div id="cesiumContainer" class="rounded-xl overflow-hidden mb-8"></div>
+
+      <div class="flex justify-center gap-10 mb-10">
+        <div>
+          <h4 class="text-center text-sm text-gray-400 mb-2">Velocidad (km/h)</h4>
+          <div id="gauge-velocidad" class="w-[150px] h-[120px]"></div>
+        </div>
+        <div>
+          <h4 class="text-center text-sm text-gray-400 mb-2">Altitud (m)</h4>
+          <div id="gauge-altitud" class="w-[150px] h-[120px]"></div>
+        </div>
+      </div>
+
+      <div class="bg-card-light dark:bg-card-dark rounded-2xl p-6 shadow border border-gray-700">
+        <h3 class="text-2xl font-bold mb-6">Detalles del vuelo</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-12">
+          <div><span class="font-medium">Duración:</span> <span id="duracion"></span> min</div>
+          <div><span class="font-medium">Batería al inicio:</span> <span id="bateria-inicio"></span>%</div>
+          <div><span class="font-medium">Batería al final:</span> <span id="bateria-fin"></span>%</div>
+          <div><span class="font-medium">Altitud máxima:</span> <span id="altitud-maxima"></span> m</div>
+          <div><span class="font-medium">Distancia máxima desde origen:</span> <span id="distancia-maxima"></span> km</div>
+          <div><span class="font-medium">Distancia total recorrida:</span> <span id="distancia-total"></span> km</div>
+          <div><span class="font-medium">Temperatura máxima:</span> <span id="temperatura-maxima"></span> °C</div>
+          <div><span class="font-medium">Velocidad máxima:</span> <span id="velocidad-maxima"></span> km/h</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- JS -->
   <script src="/static/js/app.js"></script>
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(".enlace-vuelo").forEach((el) => {
         el.addEventListener("click", (event) => {
           event.preventDefault();
           const vueloId = el.dataset.vuelo;
           if (vueloId && typeof window.cargarVuelo === "function") {
-            console.log("🟢 Abriendo vuelo:", vueloId);
             window.cargarVuelo(vueloId);
-          } else {
-            console.warn("⚠️ No se pudo cargar vuelo", vueloId);
           }
         });
       });
+
+      const root = document.documentElement;
+      const icon = document.getElementById('theme-icon');
+      const theme = localStorage.getItem('theme');
+      if (theme === 'light') {
+        root.classList.remove('dark');
+        icon.textContent = '🌙';
+      } else {
+        root.classList.add('dark');
+        icon.textContent = '☀️';
+      }
     });
+
+    function toggleTheme() {
+      const root = document.documentElement;
+      const icon = document.getElementById('theme-icon');
+      if (root.classList.contains('dark')) {
+        root.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+        icon.textContent = '🌙';
+      } else {
+        root.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        icon.textContent = '☀️';
+      }
+    }
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
 
 
 
