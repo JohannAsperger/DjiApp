@@ -57,7 +57,7 @@
         {% for vuelo in vuelos %}
           <li>
             <a href="#" class="enlace-vuelo text-blue-600 hover:underline" data-vuelo="{{ vuelo.id }}">
-              {{ vuelo.fecha_mostrar }}
+              {{ vuelo.fecha_mostrar }} — {{ (vuelo.duracion_segundos / 60) | round(1) }} min
             </a>
           </li>
         {% endfor %}
@@ -118,6 +118,7 @@
   </script>
 </body>
 </html>
+
 
 
 
