@@ -91,10 +91,10 @@ def obtener_vuelo(vuelo_id):
                 idx_alt = encabezados.index("altitude_above_seaLevel(feet)")
                 idx_datetime = encabezados.index("datetime(utc)")
                 idx_bateria = encabezados.index("battery_percent")
-                idx_vel_h = encabezados.index("velocity(m/s)")
+                idx_vel_h = encabezados.index("speed(mph)")
                 # Buscar velocidad vertical - puede tener diferentes nombres
                 idx_vel_v = None
-                for posible_nombre in ["vz(m/s)", "vertical_velocity(m/s)", "zSpeed(mph)"]:
+                for posible_nombre in [" zSpeed(mph)", "zSpeed(mph)", "vz(m/s)", "vertical_velocity(m/s)"]:
                     try:
                         idx_vel_v = encabezados.index(posible_nombre)
                         print(f"✅ Encontrada velocidad vertical como: {posible_nombre}")
@@ -119,12 +119,12 @@ def obtener_vuelo(vuelo_id):
                     lon = float(fila[idx_lon])
                     alt = float(fila[idx_alt]) * 0.3048  # pies a metros
                     bat = int(fila[idx_bateria])
-                    vel_h = float(fila[idx_vel_h]) * 3.6  # m/s → km/h
+                    vel_h = float(fila[idx_vel_h]) * 1.60934  # mph → km/h
                     
                     # Manejar velocidad vertical
                     if idx_vel_v is not None:
                         vel_v_raw = fila[idx_vel_v]
-                        if " zSpeed(mph)" in encabezados[idx_vel_v]:
+                        if "zSpeed(mph)" in encabezados[idx_vel_v]:
                             # Convertir de mph a m/s
                             vel_v = float(vel_v_raw) * 0.44704
                         else:
