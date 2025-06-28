@@ -3,6 +3,7 @@ let entity = null;
 let gaugeVelocidad = null;
 let gaugeAltitud = null;
 let gaugeBateria = null;
+let gaugeVelocidadVertical = null;
 
 window.cargarVuelo = async function (vueloId) {
   console.log("Cargando vuelo...", vueloId);
@@ -50,13 +51,13 @@ window.cargarVuelo = async function (vueloId) {
     document.getElementById("temperatura-maxima").textContent = r.temperatura_maxima_bateria_c?.toFixed(1) ?? "—";
     document.getElementById("velocidad-maxima").textContent = r.velocidad_maxima_kmh?.toFixed(1) ?? "—";
 
+    // Gauges
     if (!gaugeVelocidad) {
       gaugeVelocidad = new JustGage({
         id: "gauge-velocidad",
         value: 0,
         min: 0,
         max: 100,
-        title: "",
         label: "km/h",
         pointer: true,
         gaugeWidthScale: 0.6,
@@ -71,7 +72,6 @@ window.cargarVuelo = async function (vueloId) {
         value: 0,
         min: 0,
         max: 500,
-        title: "",
         label: "m",
         pointer: true,
         gaugeWidthScale: 0.6,
@@ -86,7 +86,6 @@ window.cargarVuelo = async function (vueloId) {
         value: 100,
         min: 0,
         max: 100,
-        title: "",
         label: "%",
         pointer: true,
         gaugeWidthScale: 0.6,
@@ -95,9 +94,30 @@ window.cargarVuelo = async function (vueloId) {
       });
     }
 
+    if (!gaugeVelocidadVertical) {
+      gaugeVelocidadVertical = new JustGage({
+        id: "gauge-velocidad-vertical",
+        value: 0,
+        min: -10,
+        max: 10,
+        label: "m/s",
+        pointer: true,
+        gaugeWidthScale: 0.6,
+        levelColors: ["#facc15", "#60a5fa", "#4ade80"],
+        customSectors: [{ color: "#dc2626", lo: -10, hi: -5 }]
+      });
+    }
+
     const fechaIsoZ = datos.fecha_inicio.replace("+00:00", "Z");
 
-    await inicializarCesiumViewer(datos.coordenadas, datos.tiempos, fechaIsoZ, datos.baterias);
+    await inicializarCesiumViewer(
+      datos.coordenadas,
+      datos.tiempos,
+      fechaIsoZ,
+      datos.baterias,
+      datos.velocidades_horizontal,
+      datos.velocidades_vertical
+    );
   } catch (error) {
     alert(`Error inicializando el visualizador 3D\n\n${error.message}`);
     console.error("❌ Error cargando vuelo:", error);
@@ -118,14 +138,13 @@ window.volverAlResumen = function () {
   resumen.style.display = "block";
 };
 
-async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr, baterias) {
+async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr, baterias, velocidadesHorizontal, velocidadesVertical) {
   if (viewer) {
     viewer.destroy();
     viewer = null;
   }
 
-  Cesium.Ion.defaultAccessToken =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk0M2RjOC0xYzc5LTQyZTgtOTMzYy1iOGMzOGMyMjFkNGIiLCJpZCI6MzEyMjA4LCJpYXQiOjE3NDk5MjM2OTZ9.hNylnne1DsKBD6JknfqBaB0NwC2YeRd2B0LqiCryCxM";
+  Cesium.Ion.defaultAccessToken = "TU_TOKEN_DE_CESIUM";
 
   const terrain = new Cesium.EllipsoidTerrainProvider();
 
@@ -203,13 +222,18 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr, bat
 
       const currentTimeSeconds = Cesium.JulianDate.secondsDifference(clock.currentTime, start);
       const idx = tiempos.findIndex(t => t >= currentTimeSeconds);
-      const velocidad = idx > 0 ?
-        (Cesium.Cartesian3.distance(puntos[idx], puntos[idx - 1]) / (tiempos[idx] - tiempos[idx - 1])) * 3.6 : 0;
 
-      if (gaugeVelocidad) gaugeVelocidad.refresh(velocidad);
-      if (gaugeAltitud) gaugeAltitud.refresh(parseFloat(altitud));
-      if (gaugeBateria && baterias && baterias.length > idx && idx >= 0) {
-        gaugeBateria.refresh(Math.round(baterias[idx]));
+      if (idx >= 0) {
+        if (gaugeAltitud) gaugeAltitud.refresh(parseFloat(altitud));
+        if (gaugeBateria && baterias && baterias.length > idx) {
+          gaugeBateria.refresh(Math.round(baterias[idx]));
+        }
+        if (gaugeVelocidad && velocidadesHorizontal && velocidadesHorizontal.length > idx) {
+          gaugeVelocidad.refresh(parseFloat(velocidadesHorizontal[idx].toFixed(1)));
+        }
+        if (gaugeVelocidadVertical && velocidadesVertical && velocidadesVertical.length > idx) {
+          gaugeVelocidadVertical.refresh(parseFloat(velocidadesVertical[idx].toFixed(1)));
+        }
       }
     }
   });
