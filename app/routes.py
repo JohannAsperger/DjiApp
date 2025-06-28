@@ -1,3 +1,4 @@
+
 import os
 import json
 import csv
@@ -56,15 +57,19 @@ def index():
 
 @rutas.route("/vuelo/<vuelo_id>")
 def obtener_vuelo(vuelo_id):
+    print(f"🔍 Solicitando vuelo: {vuelo_id}")
+    
     resumen_path = os.path.join(DATA_PATH, vuelo_id, "resumen.json")
     datos_path = os.path.join(DATA_PATH, vuelo_id, "datos.csv")
 
     if not os.path.exists(resumen_path) or not os.path.exists(datos_path):
+        print(f"❌ Archivos no encontrados para vuelo {vuelo_id}")
         return jsonify({"error": "Vuelo no encontrado"}), 404
 
     try:
         with open(resumen_path, 'r', encoding='utf-8') as f:
             resumen = json.load(f)
+        print(f"✅ Resumen cargado para {vuelo_id}")
 
         puntos = []
         tiempos = []
@@ -76,17 +81,37 @@ def obtener_vuelo(vuelo_id):
         with open(datos_path, 'r', encoding='utf-8') as f:
             reader = csv.reader(f)
             encabezados = next(reader)
+            print(f"📋 Encabezados encontrados: {encabezados}")
 
-            # Obtener índices de las columnas necesarias
-            idx_tiempo = encabezados.index("time(millisecond)")
-            idx_lat = encabezados.index("latitude")
-            idx_lon = encabezados.index("longitude")
-            idx_alt = encabezados.index("altitude_above_seaLevel(feet)")
-            idx_datetime = encabezados.index("datetime(utc)")
-            idx_bateria = encabezados.index("battery_percent")
-            idx_vel_h = encabezados.index("velocity(m/s)")
-            idx_vel_v = encabezados.index("vz(m/s)")
+            # Buscar índices de las columnas necesarias
+            try:
+                idx_tiempo = encabezados.index("time(millisecond)")
+                idx_lat = encabezados.index("latitude")
+                idx_lon = encabezados.index("longitude")
+                idx_alt = encabezados.index("altitude_above_seaLevel(feet)")
+                idx_datetime = encabezados.index("datetime(utc)")
+                idx_bateria = encabezados.index("battery_percent")
+                idx_vel_h = encabezados.index("velocity(m/s)")
+                # Buscar velocidad vertical - puede tener diferentes nombres
+                idx_vel_v = None
+                for posible_nombre in ["vz(m/s)", "vertical_velocity(m/s)", "zSpeed(mph)"]:
+                    try:
+                        idx_vel_v = encabezados.index(posible_nombre)
+                        print(f"✅ Encontrada velocidad vertical como: {posible_nombre}")
+                        break
+                    except ValueError:
+                        continue
+                
+                if idx_vel_v is None:
+                    print("⚠️ No se encontró columna de velocidad vertical, usando 0")
+                    
+            except ValueError as e:
+                print(f"❌ Error encontrando columnas: {e}")
+                return jsonify({"error": f"Columna requerida no encontrada: {e}"}), 400
 
+            filas_procesadas = 0
+            coordenadas_validas = 0
+            
             for fila in reader:
                 try:
                     tiempo_ms = int(fila[idx_tiempo])
@@ -95,15 +120,27 @@ def obtener_vuelo(vuelo_id):
                     alt = float(fila[idx_alt]) * 0.3048  # pies a metros
                     bat = int(fila[idx_bateria])
                     vel_h = float(fila[idx_vel_h]) * 3.6  # m/s → km/h
-                    vel_v = float(fila[idx_vel_v])  # ya en m/s
-
-                    # Filtrar coordenadas inválidas (GPS sin señal o valores imposibles)
-                    if abs(lat) < 0.000001 and abs(lon) < 0.000001:
-                        continue
                     
-                    # Validar rango de coordenadas GPS válidas  
+                    # Manejar velocidad vertical
+                    if idx_vel_v is not None:
+                        vel_v_raw = fila[idx_vel_v]
+                        if " zSpeed(mph)" in encabezados[idx_vel_v]:
+                            # Convertir de mph a m/s
+                            vel_v = float(vel_v_raw) * 0.44704
+                        else:
+                            vel_v = float(vel_v_raw)  # ya en m/s
+                    else:
+                        vel_v = 0.0
+
+                    filas_procesadas += 1
+
+                    # Validar rango de coordenadas GPS válidas
                     if lat < -90 or lat > 90 or lon < -180 or lon > 180:
                         continue
+
+                    # Verificar si son coordenadas válidas (no exactamente 0,0)
+                    if lat != 0.0 or lon != 0.0:
+                        coordenadas_validas += 1
 
                     if fecha_inicio is None:
                         fecha_str = fila[idx_datetime]
@@ -115,21 +152,50 @@ def obtener_vuelo(vuelo_id):
                     baterias.append(bat)
                     velocidades_horizontales.append(vel_h)
                     velocidades_verticales.append(vel_v)
-                except (ValueError, IndexError):
+                    
+                except (ValueError, IndexError) as e:
+                    print(f"⚠️ Error procesando fila: {e}")
                     continue
 
+        print(f"📊 Estadísticas de procesamiento:")
+        print(f"   - Filas procesadas: {filas_procesadas}")
+        print(f"   - Puntos totales: {len(puntos)}")
+        print(f"   - Coordenadas válidas (no 0,0): {coordenadas_validas}")
+
         if not puntos or not tiempos:
+            print(f"❌ No se encontraron datos válidos para el vuelo {vuelo_id}")
             return jsonify({
-                "error": "Vuelo sin coordenadas GPS válidas", 
-                "detalle": "Este vuelo no tiene datos de GPS. Es posible que el vuelo se haya realizado en interiores o sin señal GPS.",
+                "error": "Vuelo sin datos válidos", 
+                "detalle": "Este vuelo no tiene datos válidos.",
                 "resumen": resumen,
                 "id": vuelo_id
             }), 200
+            
+        # Verificar si tenemos coordenadas GPS válidas (no todas en 0,0)
+        if coordenadas_validas == 0:
+            print(f"⚠️ Vuelo {vuelo_id} sin coordenadas GPS válidas")
+            return jsonify({
+                "error": "Vuelo sin coordenadas GPS válidas", 
+                "detalle": "Este vuelo no tiene datos de GPS válidos. Es posible que el vuelo se haya realizado en interiores o sin señal GPS.",
+                "resumen": resumen,
+                "id": vuelo_id,
+                "coordenadas": [],
+                "tiempos": [(t - tiempos[0]) / 1000.0 for t in tiempos] if tiempos else [],
+                "baterias": baterias,
+                "velocidades_horizontal": velocidades_horizontales,
+                "velocidades_vertical": velocidades_verticales
+            }), 200
         
         if fecha_inicio is None:
+            print(f"❌ No se encontraron datos de fecha válidos para {vuelo_id}")
             return jsonify({"error": "No se encontraron datos de fecha válidos"}), 400
 
         tiempos_rel = [(t - tiempos[0]) / 1000.0 for t in tiempos]
+        
+        print(f"✅ Vuelo {vuelo_id} procesado exitosamente:")
+        print(f"   - {len(puntos)} coordenadas")
+        print(f"   - {coordenadas_validas} coordenadas GPS válidas")
+        print(f"   - Primer punto: {puntos[0] if puntos else 'N/A'}")
 
         return jsonify({
             "id": vuelo_id,
@@ -137,11 +203,13 @@ def obtener_vuelo(vuelo_id):
             "coordenadas": puntos,
             "tiempos": tiempos_rel,
             "baterias": baterias,
-            "velocidades_horizontales": velocidades_horizontales,
-            "velocidades_verticales": velocidades_verticales,
+            "velocidades_horizontal": velocidades_horizontales,
+            "velocidades_vertical": velocidades_verticales,
             "resumen": resumen
         })
 
     except Exception as e:
         print(f"❌ Error al procesar vuelo {vuelo_id}: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Error interno al procesar el vuelo"}), 500
