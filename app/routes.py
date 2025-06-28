@@ -77,6 +77,11 @@ def obtener_vuelo(vuelo_id):
             reader = csv.reader(f)
             encabezados = next(reader)
 
+            # Obtener índices de las columnas necesarias
+            idx_tiempo = encabezados.index("time(millisecond)")
+            idx_lat = encabezados.index("latitude")
+            idx_lon = encabezados.index("longitude")
+            idx_alt = encabezados.index("altitude_above_seaLevel(feet)")
             idx_datetime = encabezados.index("datetime(utc)")
             idx_bateria = encabezados.index("battery_percent")
             idx_vel_h = encabezados.index("velocity(m/s)")
@@ -84,16 +89,16 @@ def obtener_vuelo(vuelo_id):
 
             for fila in reader:
                 try:
-                    tiempo_ms = int(fila[0])
-                    lat = float(fila[2])
-                    lon = float(fila[3])
-                    alt = float(fila[4]) * 0.3048  # pies a metros
+                    tiempo_ms = int(fila[idx_tiempo])
+                    lat = float(fila[idx_lat])
+                    lon = float(fila[idx_lon])
+                    alt = float(fila[idx_alt]) * 0.3048  # pies a metros
                     bat = int(fila[idx_bateria])
                     vel_h = float(fila[idx_vel_h]) * 3.6  # m/s → km/h
                     vel_v = float(fila[idx_vel_v])  # ya en m/s
 
-                    # Filtrar coordenadas inválidas (GPS sin señal)
-                    if lat == 0.0 and lon == 0.0:
+                    # Filtrar coordenadas inválidas (GPS sin señal o valores imposibles)
+                    if abs(lat) < 0.000001 and abs(lon) < 0.000001:
                         continue
                     
                     # Validar rango de coordenadas GPS válidas  
