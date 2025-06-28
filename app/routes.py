@@ -93,11 +93,11 @@ def obtener_vuelo(vuelo_id):
                     vel_v = float(fila[idx_vel_v])  # ya en m/s
 
                     # Filtrar coordenadas inválidas (GPS sin señal)
-                    if lat == 0 and lon == 0:
+                    if lat == 0.0 and lon == 0.0:
                         continue
                     
-                    # Validar rango de coordenadas GPS válidas
-                    if abs(lat) > 90 or abs(lon) > 180:
+                    # Validar rango de coordenadas GPS válidas  
+                    if lat < -90 or lat > 90 or lon < -180 or lon > 180:
                         continue
 
                     if fecha_inicio is None:
