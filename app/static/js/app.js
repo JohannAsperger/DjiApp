@@ -23,12 +23,50 @@ window.cargarVuelo = async function (vueloId) {
   cesiumContainer.style.display = "block";
   if (infoDron) infoDron.style.display = "block";
 
+  // Limpiar mensajes previos
+  const mensajePrevio = cesiumContainer.parentNode.querySelector('.bg-yellow-100, .bg-yellow-900');
+  if (mensajePrevio) {
+    mensajePrevio.remove();
+  }
+
   try {
     const respuesta = await fetch(`/vuelo/${vueloId}`);
     const datos = await respuesta.json();
 
     if (!datos.coordenadas || datos.coordenadas.length === 0) {
-      throw new Error("No se encontraron coordenadas para este vuelo");
+      // Mostrar información del vuelo sin mapa
+      document.getElementById("cesiumContainer").style.display = "none";
+      
+      // Mostrar mensaje informativo
+      const container = document.getElementById("cesiumContainer");
+      const mensajeDiv = document.createElement("div");
+      mensajeDiv.className = "bg-yellow-100 dark:bg-yellow-900 border border-yellow-400 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg";
+      mensajeDiv.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+          <div>
+            <strong>Vuelo sin datos GPS</strong><br>
+            Este vuelo no tiene coordenadas válidas para mostrar en el mapa 3D. 
+            Es posible que se haya realizado en interiores o sin señal GPS.
+          </div>
+        </div>
+      `;
+      container.parentNode.insertBefore(mensajeDiv, container);
+      
+      // Continuar mostrando el resto de la información
+      const r = datos.resumen;
+      document.getElementById("duracion").textContent = r.duracion_segundos ? (r.duracion_segundos / 60).toFixed(1) : "—";
+      document.getElementById("bateria-inicio").textContent = r.bateria_inicio_porcentaje ?? "—";
+      document.getElementById("bateria-fin").textContent = r.bateria_fin_porcentaje ?? "—";
+      document.getElementById("altitud-maxima").textContent = r.altitud_maxima_metros?.toFixed(1) ?? "—";
+      document.getElementById("distancia-maxima").textContent = r.distancia_maxima_km?.toFixed(2) ?? "—";
+      document.getElementById("distancia-total").textContent = r.distancia_recorrida_km?.toFixed(2) ?? "—";
+      document.getElementById("temperatura-maxima").textContent = r.temperatura_maxima_bateria_c?.toFixed(1) ?? "—";
+      document.getElementById("velocidad-maxima").textContent = r.velocidad_maxima_kmh?.toFixed(1) ?? "—";
+      
+      return;
     }
 
     if (!datos.tiempos || datos.tiempos.length !== datos.coordenadas.length) {

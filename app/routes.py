@@ -92,6 +92,14 @@ def obtener_vuelo(vuelo_id):
                     vel_h = float(fila[idx_vel_h]) * 3.6  # m/s → km/h
                     vel_v = float(fila[idx_vel_v])  # ya en m/s
 
+                    # Filtrar coordenadas inválidas (GPS sin señal)
+                    if lat == 0 and lon == 0:
+                        continue
+                    
+                    # Validar rango de coordenadas GPS válidas
+                    if abs(lat) > 90 or abs(lon) > 180:
+                        continue
+
                     if fecha_inicio is None:
                         fecha_str = fila[idx_datetime]
                         dt = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
@@ -105,8 +113,16 @@ def obtener_vuelo(vuelo_id):
                 except (ValueError, IndexError):
                     continue
 
-        if not puntos or not tiempos or fecha_inicio is None:
-            return jsonify({"error": "No se encontraron datos válidos"}), 400
+        if not puntos or not tiempos:
+            return jsonify({
+                "error": "Vuelo sin coordenadas GPS válidas", 
+                "detalle": "Este vuelo no tiene datos de GPS. Es posible que el vuelo se haya realizado en interiores o sin señal GPS.",
+                "resumen": resumen,
+                "id": vuelo_id
+            }), 200
+        
+        if fecha_inicio is None:
+            return jsonify({"error": "No se encontraron datos de fecha válidos"}), 400
 
         tiempos_rel = [(t - tiempos[0]) / 1000.0 for t in tiempos]
 
