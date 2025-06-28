@@ -125,10 +125,11 @@ def obtener_vuelo(vuelo_id):
                     if idx_vel_v is not None:
                         vel_v_raw = fila[idx_vel_v]
                         if "zSpeed(mph)" in encabezados[idx_vel_v]:
-                            # Convertir de mph a m/s
-                            vel_v = float(vel_v_raw) * 0.44704
+                            # Convertir de mph a m/s e invertir signo (positivo = subiendo)
+                            vel_v = -float(vel_v_raw) * 0.44704
                         else:
-                            vel_v = float(vel_v_raw)  # ya en m/s
+                            # Invertir signo (positivo = subiendo)
+                            vel_v = -float(vel_v_raw)
                     else:
                         vel_v = 0.0
 
