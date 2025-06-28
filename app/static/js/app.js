@@ -56,7 +56,7 @@ window.cargarVuelo = async function (vueloId) {
       container.parentNode.insertBefore(mensajeDiv, container);
       
       // Continuar mostrando el resto de la información
-      const r = datos.resumen;
+      const r = datos.resumen || datos; // Para vuelos sin GPS, los datos están en el nivel raíz
       document.getElementById("duracion").textContent = r.duracion_segundos ? (r.duracion_segundos / 60).toFixed(1) : "—";
       document.getElementById("bateria-inicio").textContent = r.bateria_inicio_porcentaje ?? "—";
       document.getElementById("bateria-fin").textContent = r.bateria_fin_porcentaje ?? "—";
