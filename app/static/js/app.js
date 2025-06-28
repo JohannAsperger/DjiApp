@@ -132,7 +132,19 @@ window.cargarVuelo = async function (vueloId) {
       });
     }
 
-    // Nota: El gauge de velocidad vertical no se inicializa aquí porque no hay un div correspondiente en el HTML
+    if (!gaugeVelocidadVertical) {
+      gaugeVelocidadVertical = new JustGage({
+        id: "gauge-velocidad-vertical",
+        value: 0,
+        min: -10,
+        max: 10,
+        label: "m/s",
+        pointer: true,
+        gaugeWidthScale: 0.6,
+        levelColors: ["#facc15", "#60a5fa", "#4ade80"],
+        customSectors: [{ color: "#dc2626", lo: -10, hi: -5 }]
+      });
+    }
 
     const fechaIsoZ = datos.fecha_inicio.replace("+00:00", "Z");
 
@@ -258,7 +270,9 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr, bat
           if (gaugeVelocidad && velocidadesHorizontal && velocidadesHorizontal.length > idx) {
             gaugeVelocidad.refresh(parseFloat(velocidadesHorizontal[idx].toFixed(1)));
           }
-          // No actualizar gauge de velocidad vertical ya que no existe el elemento HTML
+          if (gaugeVelocidadVertical && velocidadesVertical && velocidadesVertical.length > idx) {
+            gaugeVelocidadVertical.refresh(parseFloat(velocidadesVertical[idx].toFixed(1)));
+          }
         } catch (error) {
           console.error("Error actualizando gauges:", error);
         }
