@@ -1,3 +1,6 @@
+// Configurar token de Cesium Ion (reemplaza con tu token real)
+Cesium.Ion.defaultAccessToken = 'TU_TOKEN_DE_CESIUM_AQUI';
+
 let viewer = null;
 let entity = null;
 let gaugeVelocidad = null;
