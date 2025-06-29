@@ -212,8 +212,8 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr, bat
   const property = new Cesium.SampledPositionProperty();
 
   property.setInterpolationOptions({
-    interpolationAlgorithm: Cesium.HermitePolynomialApproximation,
-    interpolationDegree: 3,
+    interpolationAlgorithm: Cesium.LagrangePolynomialApproximation,
+    interpolationDegree: 5,
   });
 
   for (let i = 0; i < puntos.length; i++) {
@@ -231,6 +231,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr, bat
   viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
   viewer.clock.multiplier = 1.0;
   viewer.clock.shouldAnimate = true;
+  viewer.clock.clockStep = Cesium.ClockStep.SYSTEM_CLOCK_MULTIPLIER;
   viewer.timeline.zoomTo(start, stop);
 
   entity = viewer.entities.add({
@@ -243,11 +244,11 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicioStr, bat
       color: Cesium.Color.RED,
     },
     path: {
-      resolution: 1,
+      resolution: 0.5,
       leadTime: 0,
       trailTime: duracionTotalSeg,
       material: Cesium.Color.YELLOW,
-      width: 2,
+      width: 3,
     },
   });
 
