@@ -1,4 +1,3 @@
-
 let viewer = null;
 let entity = null;
 let gaugeVelocidad = null;
@@ -80,7 +79,7 @@ window.cargarVuelo = async function (vueloId) {
         label: "km/h",
         pointer: true,
         gaugeWidthScale: 0.6,
-        levelColors: ["#2563eb", "#0ea5e9", "#22c55e"],
+        levelColors: ["#2563eb", "#0ea5e9", "#22c55e"], // azul → turquesa → verde
         customSectors: [{ color: "#dc2626", lo: 90, hi: 100 }],
         labelFontColor: "#444",
         valueFontColor: "inherit",
@@ -97,7 +96,7 @@ window.cargarVuelo = async function (vueloId) {
         label: "m",
         pointer: true,
         gaugeWidthScale: 0.6,
-        levelColors: ["#2563eb", "#38bdf8", "#a3e635"],
+        levelColors: ["#2563eb", "#38bdf8", "#a3e635"], // azul → celeste → lima
         customSectors: [{ color: "#dc2626", lo: 450, hi: 500 }],
         labelFontColor: "#444",
         valueFontColor: "inherit",
@@ -131,7 +130,7 @@ window.cargarVuelo = async function (vueloId) {
         label: "m/s",
         pointer: true,
         gaugeWidthScale: 0.6,
-        noGradient: true,
+        noGradient: true, // ✅ evita pintar desde 0 hasta la aguja
         levelColors: ["#f59e0b"],
         labelFontColor: "#444",
         valueFontColor: "inherit",
@@ -161,172 +160,28 @@ window.volverAlResumen = function () {
   document.getElementById("cesiumContainer").style.display = "none";
   const infoDron = document.getElementById("info-dron");
   if (infoDron) infoDron.style.display = "none";
-  
-  // Limpiar el viewer de Cesium para liberar memoria
-  if (viewer) {
-    viewer.destroy();
-    viewer = null;
-    entity = null;
-  }
 };
 
-async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, baterias, velocidadesH, velocidadesV) {
-  console.log("🚀 Inicializando Cesium viewer...");
-  
-  // Limpiar viewer anterior si existe
-  if (viewer) {
-    viewer.destroy();
-    viewer = null;
-    entity = null;
-  }
 
-  try {
-    // Crear el viewer de Cesium
-    viewer = new Cesium.Viewer('cesiumContainer', {
-      terrain: Cesium.Terrain.fromWorldTerrain(),
-      homeButton: false,
-      sceneModePicker: false,
-      baseLayerPicker: false,
-      navigationHelpButton: false,
-      animation: true,
-      timeline: true,
-      fullscreenButton: true,
-      geocoder: false,
-      infoBox: false,
-      selectionIndicator: false
-    });
 
-    // Configurar el reloj
-    const startTime = Cesium.JulianDate.fromIso8601(fechaInicio);
-    const stopTime = Cesium.JulianDate.addSeconds(startTime, tiempos[tiempos.length - 1], new Cesium.JulianDate());
-    
-    viewer.clock.startTime = startTime.clone();
-    viewer.clock.stopTime = stopTime.clone();
-    viewer.clock.currentTime = startTime.clone();
-    viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
-    viewer.clock.multiplier = 2;
 
-    // Crear las propiedades de posición y datos
-    const positionProperty = new Cesium.SampledPositionProperty();
-    const batteriaProperty = new Cesium.SampledProperty(Number);
-    const velocidadHProperty = new Cesium.SampledProperty(Number);
-    const velocidadVProperty = new Cesium.SampledProperty(Number);
-    const altitudProperty = new Cesium.SampledProperty(Number);
 
-    // Agregar los puntos de datos
-    for (let i = 0; i < coordenadas.length; i++) {
-      const tiempo = Cesium.JulianDate.addSeconds(startTime, tiempos[i], new Cesium.JulianDate());
-      const posicion = Cesium.Cartesian3.fromDegrees(
-        coordenadas[i][1], // longitud
-        coordenadas[i][0], // latitud
-        coordenadas[i][2]  // altitud
-      );
-      
-      positionProperty.addSample(tiempo, posicion);
-      
-      if (baterias && baterias[i] !== undefined) {
-        batteriaProperty.addSample(tiempo, baterias[i]);
-      }
-      if (velocidadesH && velocidadesH[i] !== undefined) {
-        velocidadHProperty.addSample(tiempo, velocidadesH[i]);
-      }
-      if (velocidadesV && velocidadesV[i] !== undefined) {
-        velocidadVProperty.addSample(tiempo, velocidadesV[i]);
-      }
-      if (coordenadas[i][2] !== undefined) {
-        altitudProperty.addSample(tiempo, coordenadas[i][2]);
-      }
-    }
 
-    // Crear la entidad del dron
-    entity = viewer.entities.add({
-      availability: new Cesium.TimeIntervalCollection([
-        new Cesium.TimeInterval({
-          start: startTime,
-          stop: stopTime
-        })
-      ]),
-      position: positionProperty,
-      orientation: new Cesium.VelocityOrientationProperty(positionProperty),
-      model: {
-        uri: '/static/models/drone.glb',
-        minimumPixelSize: 64,
-        maximumScale: 20000,
-        scale: 0.5
-      },
-      path: {
-        resolution: 1,
-        material: new Cesium.PolylineGlowMaterialProperty({
-          glowPower: 0.1,
-          color: Cesium.Color.CYAN
-        }),
-        width: 3,
-        leadTime: 0,
-        trailTime: 60
-      }
-    });
 
-    // Seguir la entidad
-    viewer.trackedEntity = entity;
 
-    // Configurar el evento de tick del reloj para actualizar los gauges
-    viewer.clock.onTick.addEventListener(function(clock) {
-      const currentTime = clock.currentTime;
-      
-      try {
-        if (batteriaProperty.getValue(currentTime) !== undefined && gaugeBateria) {
-          gaugeBateria.refresh(Math.round(batteriaProperty.getValue(currentTime)));
-        }
-        
-        if (velocidadHProperty.getValue(currentTime) !== undefined && gaugeVelocidad) {
-          gaugeVelocidad.refresh(Math.round(velocidadHProperty.getValue(currentTime)));
-        }
-        
-        if (velocidadVProperty.getValue(currentTime) !== undefined && gaugeVelocidadVertical) {
-          gaugeVelocidadVertical.refresh(parseFloat(velocidadVProperty.getValue(currentTime).toFixed(1)));
-        }
-        
-        if (altitudProperty.getValue(currentTime) !== undefined && gaugeAltitud) {
-          gaugeAltitud.refresh(Math.round(altitudProperty.getValue(currentTime)));
-        }
-      } catch (error) {
-        console.warn("Error actualizando gauges:", error);
-      }
-    });
 
-    // Centrar la vista en la trayectoria
-    viewer.zoomTo(entity);
 
-    console.log("✅ Cesium viewer inicializado correctamente");
-    
-  } catch (error) {
-    console.error("❌ Error inicializando Cesium:", error);
-    throw error;
-  }
-}
 
-// Función para alternar modo oscuro
-window.toggleDarkMode = function() {
-  document.documentElement.classList.toggle('dark');
-  const isDark = document.documentElement.classList.contains('dark');
-  localStorage.setItem('darkMode', isDark);
-  
-  // Actualizar el ícono del botón
-  const button = document.querySelector('[onclick="toggleDarkMode()"]');
-  if (button) {
-    const icon = button.querySelector('svg');
-    if (isDark) {
-      icon.innerHTML = '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>';
-    } else {
-      icon.innerHTML = '<path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>';
-    }
-  }
-};
 
-// Inicializar el modo oscuro al cargar la página
-document.addEventListener('DOMContentLoaded', function() {
-  const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-  if (savedDarkMode) {
-    document.documentElement.classList.add('dark');
-  }
-});
+
+
+
+
+
+
+
+
+
+
+
+
