@@ -157,6 +157,86 @@ window.cargarVuelo = async function (vueloId) {
   }
 };
 
+async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, baterias, velocidadesH, velocidadesV) {
+  if (viewer) {
+    viewer.destroy();
+    viewer = null;
+  }
+
+  viewer = new Cesium.Viewer('cesiumContainer', {
+    terrainProvider: Cesium.createWorldTerrain(),
+    imageryProvider: new Cesium.IonImageryProvider({ assetId: 3954 }),
+    baseLayerPicker: false,
+    vrButton: false,
+    sceneModePicker: false,
+    navigationHelpButton: false,
+    animation: true,
+    timeline: true,
+    fullscreenButton: true,
+    geocoder: false,
+    homeButton: true,
+    infoBox: true,
+    selectionIndicator: true
+  });
+
+  const positions = coordenadas.map(coord => 
+    Cesium.Cartesian3.fromDegrees(coord.lon, coord.lat, coord.alt)
+  );
+
+  const property = new Cesium.SampledPositionProperty();
+  const startTime = Cesium.JulianDate.fromIso8601(fechaInicio);
+
+  for (let i = 0; i < positions.length; i++) {
+    const time = Cesium.JulianDate.addSeconds(startTime, tiempos[i], new Cesium.JulianDate());
+    property.addSample(time, positions[i]);
+  }
+
+  entity = viewer.entities.add({
+    availability: new Cesium.TimeIntervalCollection([
+      new Cesium.TimeInterval({
+        start: startTime,
+        stop: Cesium.JulianDate.addSeconds(startTime, tiempos[tiempos.length - 1], new Cesium.JulianDate())
+      })
+    ]),
+    position: property,
+    orientation: new Cesium.VelocityOrientationProperty(property),
+    model: {
+      uri: '/app/static/models/drone.glb',
+      minimumPixelSize: 64,
+      maximumScale: 20000
+    },
+    path: {
+      resolution: 1,
+      material: new Cesium.PolylineGlowMaterialProperty({
+        glowPower: 0.1,
+        color: Cesium.Color.CYAN
+      }),
+      width: 3
+    }
+  });
+
+  viewer.clock.startTime = startTime;
+  viewer.clock.stopTime = Cesium.JulianDate.addSeconds(startTime, tiempos[tiempos.length - 1], new Cesium.JulianDate());
+  viewer.clock.currentTime = startTime;
+  viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
+  viewer.clock.multiplier = 5;
+
+  viewer.trackedEntity = entity;
+  
+  viewer.clock.onTick.addEventListener(function(clock) {
+    const currentTime = clock.currentTime;
+    const totalSeconds = Cesium.JulianDate.secondsDifference(currentTime, startTime);
+    const currentIndex = Math.floor(totalSeconds);
+    
+    if (currentIndex >= 0 && currentIndex < velocidadesH.length) {
+      if (gaugeVelocidad) gaugeVelocidad.refresh(velocidadesH[currentIndex] || 0);
+      if (gaugeAltitud) gaugeAltitud.refresh(coordenadas[currentIndex]?.alt || 0);
+      if (gaugeBateria) gaugeBateria.refresh(baterias[currentIndex] || 0);
+      if (gaugeVelocidadVertical) gaugeVelocidadVertical.refresh(velocidadesV[currentIndex] || 0);
+    }
+  });
+}
+
 window.volverAlResumen = function () {
   document.getElementById("resumen").style.display = "block";
   document.getElementById("detalle-vuelo").style.display = "none";
