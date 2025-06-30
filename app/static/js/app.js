@@ -158,9 +158,22 @@ window.cargarVuelo = async function (vueloId) {
 };
 
 async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, baterias, velocidadesH, velocidadesV) {
+  // Validar datos de entrada
+  if (!coordenadas || !Array.isArray(coordenadas) || coordenadas.length === 0) {
+    throw new Error("Coordenadas inválidas o vacías");
+  }
+  
+  if (!tiempos || !Array.isArray(tiempos) || tiempos.length !== coordenadas.length) {
+    throw new Error("Tiempos inválidos o no coinciden con coordenadas");
+  }
+
   if (viewer) {
     // Limpiar listeners antes de destruir
-    viewer.clock.onTick.removeEventListener();
+    try {
+      viewer.clock.onTick.removeEventListener();
+    } catch (e) {
+      console.warn("Error limpiando listeners:", e);
+    }
     viewer.destroy();
     viewer = null;
   }
@@ -175,18 +188,32 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, bateri
     fullscreenButton: true,
     geocoder: false,
     homeButton: true,
-    infoBox: true,
-    selectionIndicator: true
+    infoBox: false,
+    selectionIndicator: false,
+    terrainProvider: Cesium.createWorldTerrain({
+      requestWaterMask: false,
+      requestVertexNormals: false
+    })
   });
 
-  // Configurar terreno después de crear el viewer
-  try {
-    viewer.terrainProvider = Cesium.createWorldTerrain();
-  } catch (e) {
-    console.warn("No se pudo cargar el terreno mundial:", e);
+  // Filtrar coordenadas válidas
+  const coordenadasValidas = [];
+  const tiemposValidos = [];
+  
+  for (let i = 0; i < coordenadas.length; i++) {
+    const coord = coordenadas[i];
+    if (coord && typeof coord.lat === 'number' && typeof coord.lon === 'number' && 
+        typeof coord.alt === 'number' && !isNaN(coord.lat) && !isNaN(coord.lon) && !isNaN(coord.alt)) {
+      coordenadasValidas.push(coord);
+      tiemposValidos.push(tiempos[i]);
+    }
   }
 
-  const positions = coordenadas.map(coord => 
+  if (coordenadasValidas.length === 0) {
+    throw new Error("No hay coordenadas válidas para mostrar");
+  }
+
+  const positions = coordenadasValidas.map(coord => 
     Cesium.Cartesian3.fromDegrees(coord.lon, coord.lat, coord.alt)
   );
 
@@ -194,7 +221,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, bateri
   const startTime = Cesium.JulianDate.fromIso8601(fechaInicio);
 
   for (let i = 0; i < positions.length; i++) {
-    const time = Cesium.JulianDate.addSeconds(startTime, tiempos[i], new Cesium.JulianDate());
+    const time = Cesium.JulianDate.addSeconds(startTime, tiemposValidos[i], new Cesium.JulianDate());
     property.addSample(time, positions[i]);
   }
 
@@ -202,15 +229,17 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, bateri
     availability: new Cesium.TimeIntervalCollection([
       new Cesium.TimeInterval({
         start: startTime,
-        stop: Cesium.JulianDate.addSeconds(startTime, tiempos[tiempos.length - 1], new Cesium.JulianDate())
+        stop: Cesium.JulianDate.addSeconds(startTime, tiemposValidos[tiemposValidos.length - 1], new Cesium.JulianDate())
       })
     ]),
     position: property,
     orientation: new Cesium.VelocityOrientationProperty(property),
-    model: {
-      uri: '/app/static/models/drone.glb',
-      minimumPixelSize: 64,
-      maximumScale: 20000
+    point: {
+      pixelSize: 10,
+      color: Cesium.Color.YELLOW,
+      outlineColor: Cesium.Color.BLACK,
+      outlineWidth: 2,
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
     },
     path: {
       resolution: 1,
@@ -223,12 +252,18 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, bateri
   });
 
   viewer.clock.startTime = startTime;
-  viewer.clock.stopTime = Cesium.JulianDate.addSeconds(startTime, tiempos[tiempos.length - 1], new Cesium.JulianDate());
+  viewer.clock.stopTime = Cesium.JulianDate.addSeconds(startTime, tiemposValidos[tiemposValidos.length - 1], new Cesium.JulianDate());
   viewer.clock.currentTime = startTime;
   viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
   viewer.clock.multiplier = 5;
 
   viewer.trackedEntity = entity;
+  
+  // Volar a la primera posición
+  viewer.camera.flyTo({
+    destination: positions[0],
+    duration: 2.0
+  });
   
   let lastUpdateIndex = -1;
   
@@ -242,10 +277,18 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, bateri
       lastUpdateIndex = currentIndex;
       
       try {
-        if (gaugeVelocidad) gaugeVelocidad.refresh(velocidadesH[currentIndex] || 0);
-        if (gaugeAltitud) gaugeAltitud.refresh(coordenadas[currentIndex]?.alt || 0);
-        if (gaugeBateria) gaugeBateria.refresh(baterias[currentIndex] || 0);
-        if (gaugeVelocidadVertical) gaugeVelocidadVertical.refresh(velocidadesV[currentIndex] || 0);
+        if (gaugeVelocidad && velocidadesH[currentIndex] !== undefined) {
+          gaugeVelocidad.refresh(velocidadesH[currentIndex] || 0);
+        }
+        if (gaugeAltitud && coordenadas[currentIndex]) {
+          gaugeAltitud.refresh(coordenadas[currentIndex].alt || 0);
+        }
+        if (gaugeBateria && baterias[currentIndex] !== undefined) {
+          gaugeBateria.refresh(baterias[currentIndex] || 0);
+        }
+        if (gaugeVelocidadVertical && velocidadesV[currentIndex] !== undefined) {
+          gaugeVelocidadVertical.refresh(velocidadesV[currentIndex] || 0);
+        }
       } catch (e) {
         console.warn("Error actualizando gauges:", e);
       }
