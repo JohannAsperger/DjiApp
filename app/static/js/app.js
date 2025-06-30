@@ -1,5 +1,5 @@
 // Configurar token de Cesium Ion (reemplaza con tu token real)
-Cesium.Ion.defaultAccessToken = 'TU_TOKEN_DE_CESIUM_AQUI';
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk0M2RjOC0xYzc5LTQyZTgtOTMzYy1iOGMzOGMyMjFkNGIiLCJpZCI6MzEyMjA4LCJpYXQiOjE3NDk5MjM2OTZ9.hNylnne1DsKBD6JknfqBaB0NwC2YeRd2B0LqiCryCxM';
 
 let viewer = null;
 let entity = null;
