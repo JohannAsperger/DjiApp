@@ -159,12 +159,13 @@ window.cargarVuelo = async function (vueloId) {
 
 async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, baterias, velocidadesH, velocidadesV) {
   if (viewer) {
+    // Limpiar listeners antes de destruir
+    viewer.clock.onTick.removeEventListener();
     viewer.destroy();
     viewer = null;
   }
 
   viewer = new Cesium.Viewer('cesiumContainer', {
-    terrain: Cesium.Terrain.fromWorldTerrain(),
     baseLayerPicker: false,
     vrButton: false,
     sceneModePicker: false,
@@ -177,6 +178,13 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, bateri
     infoBox: true,
     selectionIndicator: true
   });
+
+  // Configurar terreno después de crear el viewer
+  try {
+    viewer.terrainProvider = Cesium.createWorldTerrain();
+  } catch (e) {
+    console.warn("No se pudo cargar el terreno mundial:", e);
+  }
 
   const positions = coordenadas.map(coord => 
     Cesium.Cartesian3.fromDegrees(coord.lon, coord.lat, coord.alt)
@@ -222,16 +230,25 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, bateri
 
   viewer.trackedEntity = entity;
   
+  let lastUpdateIndex = -1;
+  
   viewer.clock.onTick.addEventListener(function(clock) {
     const currentTime = clock.currentTime;
     const totalSeconds = Cesium.JulianDate.secondsDifference(currentTime, startTime);
     const currentIndex = Math.floor(totalSeconds);
     
-    if (currentIndex >= 0 && currentIndex < velocidadesH.length) {
-      if (gaugeVelocidad) gaugeVelocidad.refresh(velocidadesH[currentIndex] || 0);
-      if (gaugeAltitud) gaugeAltitud.refresh(coordenadas[currentIndex]?.alt || 0);
-      if (gaugeBateria) gaugeBateria.refresh(baterias[currentIndex] || 0);
-      if (gaugeVelocidadVertical) gaugeVelocidadVertical.refresh(velocidadesV[currentIndex] || 0);
+    // Solo actualizar si el índice ha cambiado para evitar actualizaciones innecesarias
+    if (currentIndex !== lastUpdateIndex && currentIndex >= 0 && currentIndex < velocidadesH.length) {
+      lastUpdateIndex = currentIndex;
+      
+      try {
+        if (gaugeVelocidad) gaugeVelocidad.refresh(velocidadesH[currentIndex] || 0);
+        if (gaugeAltitud) gaugeAltitud.refresh(coordenadas[currentIndex]?.alt || 0);
+        if (gaugeBateria) gaugeBateria.refresh(baterias[currentIndex] || 0);
+        if (gaugeVelocidadVertical) gaugeVelocidadVertical.refresh(velocidadesV[currentIndex] || 0);
+      } catch (e) {
+        console.warn("Error actualizando gauges:", e);
+      }
     }
   });
 }
