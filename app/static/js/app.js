@@ -164,8 +164,7 @@ async function inicializarCesiumViewer(coordenadas, tiempos, fechaInicio, bateri
   }
 
   viewer = new Cesium.Viewer('cesiumContainer', {
-    terrainProvider: Cesium.createWorldTerrain(),
-    imageryProvider: new Cesium.IonImageryProvider({ assetId: 3954 }),
+    terrain: Cesium.Terrain.fromWorldTerrain(),
     baseLayerPicker: false,
     vrButton: false,
     sceneModePicker: false,
