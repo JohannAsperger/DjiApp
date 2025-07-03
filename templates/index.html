@@ -1,196 +1,152 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="">
 <head>
-  <meta charset="UTF-8" />
-  <title>DJIApp | FlightScope</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJIApp | FlightScope</title>
 
-  <!-- TailwindCSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              DEFAULT: '#3b82f6',
-              dark: '#2563eb',
-              light: '#93c5fd',
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
             },
-            background: {
-              dark: '#0f172a',
-              light: '#f8fafc',
-            },
-            card: {
-              dark: '#1e293b',
-              light: '#ffffff',
-            },
-            text: {
-              dark: '#f1f5f9',
-              light: '#1e293b',
+            colors: {
+              brand: {
+                DEFAULT: '#3b82f6',
+                dark: '#2563eb',
+                light: '#93c5fd',
+              },
+              background: {
+                light: '#f1f5f9',
+                dark: '#0f172a',
+              },
+              card: {
+                light: '#ffffff',
+                dark: '#1e293b',
+              },
+              text: {
+                light: '#1e293b',
+                dark: '#f1f5f9',
+              },
             },
           },
         },
-      },
-    };
-  </script>
+      };
+    </script>
+    
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+    
+    <style type="text/tailwindcss">
+        @layer base {
+            body { font-family: 'Inter', sans-serif; }
+        }
+        @layer components {
+            #cesiumContainer { width: 100%; height: 100%; }
+            #detalle-vuelo { display: none; }
+            .gauge-container { width: 100%; max-width: 250px; margin: auto; }
+            .gauge { width: 100% !important; height: auto !important; }
+            .justgage-title { fill: #9ca3af; font-weight: 600; }
+            .justgage-value { fill: #1e293b; }
+            .dark .justgage-value { fill: #f1f5f9; }
+        }
+    </style>
 
-  <!-- Cesium -->
-  <link href="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
-  <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
-
-  <!-- JustGage -->
-  <script src="https://cdn.jsdelivr.net/npm/raphael@2.3.0/raphael.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/justgage@1.3.5/justgage.min.js"></script>
-
-  <style>
-    #cesiumContainer {
-      width: 100%;
-      height: 500px;
-      display: none;
-      transition: height 0.3s ease;
-    }
-    .expanded-cesium {
-      height: 800px !important;
-    }
-  </style>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/raphael@2.3.0/raphael.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/justgage@1.3.5/justgage.min.js"></script>
 </head>
-<body class="font-sans min-h-screen transition-colors duration-500 bg-background-light text-text-light dark:bg-background-dark dark:text-text-dark">
+<body class="font-sans bg-background-light text-text-light dark:bg-background-dark dark:text-text-dark transition-colors duration-300">
 
-  <!-- Toggle theme -->
-  <button onclick="toggleTheme()" class="fixed top-4 right-4 z-50 bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded-md shadow text-sm sm:text-base">
-    <span id="theme-icon">🌙</span> Cambiar tema
-  </button>
-
-  <!-- Contenido principal -->
-  <main class="max-w-6xl mx-auto px-4 py-12">
-    <!-- Resumen -->
-    <section id="resumen">
-      <h1 class="text-4xl font-bold text-center mb-10 text-text-light dark:text-text-dark">FlightScope</h1>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Cantidad total de vuelos</p><p class="text-2xl font-semibold text-brand">{{ resumen_general.cantidad_vuelos }}</p></div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Duración total de vuelo</p><p class="text-2xl font-semibold">{{ resumen_general.duracion_total_min }} min</p></div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Distancia total recorrida</p><p class="text-2xl font-semibold">{{ resumen_general.distancia_total_km }} km</p></div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Distancia máxima desde origen</p><p class="text-2xl font-semibold">{{ resumen_general.distancia_maxima_km }} km</p></div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Altitud máxima alcanzada</p><p class="text-2xl font-semibold">{{ resumen_general.altitud_maxima_metros }} m</p></div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Temperatura máxima batería</p><p class="text-2xl font-semibold">{{ resumen_general.temperatura_maxima_bateria_c }} °C</p></div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-md"><p class="text-sm text-gray-400">Velocidad máxima</p><p class="text-2xl font-semibold">{{ resumen_general.velocidad_maxima_kmh }} km/h</p></div>
-      </div>
-
-      <!-- Vuelos con tarjetas -->
-      <div>
-        <h2 class="text-2xl font-bold text-center mb-6">Vuelos</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {% for vuelo in vuelos %}
-            <a href="#" class="enlace-vuelo block bg-card-light dark:bg-card-dark p-4 rounded-xl shadow hover:ring-2 hover:ring-brand transition" data-vuelo="{{ vuelo.id }}">
-              <div class="text-lg text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</div>
-              <div class="text-lg font-semibold text-brand flex items-center gap-2 mt-1">
-                ⏱ {{ (vuelo.duracion_segundos / 60) | round(1) }} min
-              </div>
-            </a>
-          {% endfor %}
+    <div id="resumen" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <h1 class="text-3xl sm:text-4xl font-extrabold mb-6 text-text-light dark:text-text-dark">Panel de Vuelos</h1>
+        <div id="resumen-general" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
+            {% if resumen_general %}
+            <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Vuelos</p><strong class="text-4xl font-extrabold text-brand">{{ resumen_general.cantidad_vuelos }}</strong></div>
+            <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Duración (h)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ "%.1f"|format(resumen_general.duracion_total_min / 60) }}</strong></div>
+            <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Distancia (km)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.distancia_total_km }}</strong></div>
+            <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Dist. Máx. (km)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.distancia_maxima_km }}</strong></div>
+            <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Altitud Máx. (m)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.altitud_maxima_metros }}</strong></div>
+            <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Vel. Máx. (km/h)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.velocidad_maxima_kmh }}</strong></div>
+            <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Temp. Máx. (°C)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.temperatura_maxima_bateria_c }}</strong></div>
+            <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Recorrido Máx. (km)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.distancia_recorrida_max_km }}</strong></div>
+            {% endif %}
         </div>
-      </div>
-    </section>
+        <h2 class="text-2xl font-bold mb-4 text-text-light dark:text-text-dark">Historial de Vuelos</h2>
+        <ul id="lista-vuelos" class="space-y-3">
+            {% for vuelo in vuelos %}
+            <li onclick="window.cargarVuelo('{{ vuelo.id }}')" role="button" class="cursor-pointer bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md hover:ring-2 hover:ring-brand dark:hover:bg-slate-700/50 transition-all flex justify-between items-center">
+                <span class="font-semibold text-brand">{{ vuelo.id }}</span>
+                <span class="font-medium text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</span>
+                <span class="text-sm text-slate-500 dark:text-slate-400">{{ "%.1f min"|format(vuelo.duracion_segundos / 60) }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
 
-    <!-- Detalle -->
-    <section id="detalle-vuelo" class="pt-12" style="display: none;">
-      <button onclick="window.volverAlResumen()" class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white font-semibold px-4 py-2 rounded-lg shadow transition mb-6">
-        ← Inicio
-      </button>
-
-      <!-- Botón expandir -->
-      <div class="flex justify-end mb-2">
-        <button onclick="toggleCesiumSize()" class="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded-md shadow text-xs">↕ Expandir visor</button>
-      </div>
-
-      <div id="cesiumContainer" class="rounded-xl overflow-hidden mb-8"></div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow w-full flex flex-col items-center">
-          <h4 class="text-sm text-gray-400 mb-3 text-center">Velocidad (km/h)</h4>
-          <div id="gauge-velocidad" class="w-[150px] h-[120px]"></div>
+    <div id="detalle-vuelo" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <button id="btn-volver" onclick="window.volverAlResumen()" class="mb-6 px-4 py-2 bg-brand text-white font-semibold rounded-lg shadow-md hover:bg-brand-dark transition-colors">
+            ← Volver al Panel
+        </button>
+        <div class="relative h-[60vh] rounded-lg overflow-hidden shadow-xl border border-slate-200 dark:border-slate-700">
+            <div id="cesiumContainer"></div>
         </div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow w-full flex flex-col items-center">
-          <h4 class="text-sm text-gray-400 mb-3 text-center">Altitud (m)</h4>
-          <div id="gauge-altitud" class="w-[150px] h-[120px]"></div>
+        <div class="mt-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4 text-text-light dark:text-text-dark">Telemetría en Vivo</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="gauge-container flex flex-col items-center"><div id="gauge-altitud" class="gauge"></div><p class="text-center mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Altitud (m)</p></div>
+                        <div class="gauge-container flex flex-col items-center"><div id="gauge-velocidad" class="gauge"></div><p class="text-center mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Velocidad (km/h)</p></div>
+                        <div class="gauge-container flex flex-col items-center"><div id="gauge-velocidad-vertical" class="gauge"></div><p class="text-center mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Vel. Vertical (m/s)</p></div>
+                        <div class="gauge-container flex flex-col items-center"><div id="gauge-bateria" class="gauge"></div><p class="text-center mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Batería (%)</p></div>
+                    </div>
+                </div>
+                <div class="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4 text-text-light dark:text-text-dark">Datos del Vuelo</h3>
+                    <div id="info-dron" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <!-- Esta sección es la que causa el problema, necesita IDs específicos -->
+                        <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center"><p class="text-sm text-slate-500 dark:text-slate-400 font-semibold">DURACIÓN (MIN)</p><p class="text-2xl font-bold text-text-light dark:text-text-dark" id="duracion"></p></div>
+                        <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center"><p class="text-sm text-slate-500 dark:text-slate-400 font-semibold">BATERÍA INICIO</p><p class="text-2xl font-bold text-text-light dark:text-text-dark" id="bateria-inicio"></p></div>
+                        <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center"><p class="text-sm text-slate-500 dark:text-slate-400 font-semibold">BATERÍA FIN</p><p class="text-2xl font-bold text-text-light dark:text-text-dark" id="bateria-fin"></p></div>
+                        <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center"><p class="text-sm text-slate-500 dark:text-slate-400 font-semibold">ALTITUD MÁXIMA (M)</p><p class="text-2xl font-bold text-text-light dark:text-text-dark" id="altitud-maxima"></p></div>
+                        <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center"><p class="text-sm text-slate-500 dark:text-slate-400 font-semibold">DISTANCIA MÁX. (KM)</p><p class="text-2xl font-bold text-text-light dark:text-text-dark" id="distancia-maxima"></p></div>
+                        <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center"><p class="text-sm text-slate-500 dark:text-slate-400 font-semibold">DISTANCIA TOTAL (KM)</p><p class="text-2xl font-bold text-text-light dark:text-text-dark" id="distancia-total"></p></div>
+                        <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center"><p class="text-sm text-slate-500 dark:text-slate-400 font-semibold">TEMP. MÁX. (°C)</p><p class="text-2xl font-bold text-text-light dark:text-text-dark" id="temperatura-maxima"></p></div>
+                        <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center"><p class="text-sm text-slate-500 dark:text-slate-400 font-semibold">VELOCIDAD MÁX. (KM/H)</p><p class="text-2xl font-bold text-text-light dark:text-text-dark" id="velocidad-maxima"></p></div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow w-full flex flex-col items-center">
-          <h4 class="text-sm text-gray-400 mb-3 text-center">Velocidad Vertical (m/s)</h4>
-          <div id="gauge-velocidad-vertical" class="w-[150px] h-[120px]"></div>
-        </div>
-        <div class="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow w-full flex flex-col items-center">
-          <h4 class="text-sm text-gray-400 mb-3 text-center">Batería (%)</h4>
-          <div id="gauge-bateria" class="w-[150px] h-[120px]"></div>
-        </div>
-      </div>
-
-      <div class="bg-card-light dark:bg-card-dark rounded-2xl p-6 shadow border border-gray-700">
-        <h3 class="text-2xl font-bold mb-6 text-center">Detalles del vuelo</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-12 max-w-2xl mx-auto">
-          <div><span class="font-medium">Duración:</span> <span id="duracion"></span> min</div>
-          <div><span class="font-medium">Batería al inicio:</span> <span id="bateria-inicio"></span>%</div>
-          <div><span class="font-medium">Batería al final:</span> <span id="bateria-fin"></span>%</div>
-          <div><span class="font-medium">Altitud máxima:</span> <span id="altitud-maxima"></span> m</div>
-          <div><span class="font-medium">Distancia máxima desde origen:</span> <span id="distancia-maxima"></span> km</div>
-          <div><span class="font-medium">Distancia total recorrida:</span> <span id="distancia-total"></span> km</div>
-          <div><span class="font-medium">Temperatura máxima:</span> <span id="temperatura-maxima"></span> °C</div>
-          <div><span class="font-medium">Velocidad máxima:</span> <span id="velocidad-maxima"></span> km/h</div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <script src="/static/js/app.js"></script>
-  <script>
-    function toggleCesiumSize() {
-      const container = document.getElementById('cesiumContainer');
-      container.classList.toggle('expanded-cesium');
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      document.querySelectorAll(".enlace-vuelo").forEach((el) => {
-        el.addEventListener("click", (event) => {
-          event.preventDefault();
-          const vueloId = el.dataset.vuelo;
-          if (vueloId && typeof window.cargarVuelo === "function") {
-            window.cargarVuelo(vueloId);
-          }
-        });
-      });
-
-      const root = document.documentElement;
-      const icon = document.getElementById('theme-icon');
-      const theme = localStorage.getItem('theme');
-      if (theme === 'light') {
-        root.classList.remove('dark');
-        icon.textContent = '🌙';
-      } else {
-        root.classList.add('dark');
-        icon.textContent = '☀️';
-      }
-    });
-
-    function toggleTheme() {
-      const root = document.documentElement;
-      const icon = document.getElementById('theme-icon');
-      if (root.classList.contains('dark')) {
-        root.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
-        icon.textContent = '🌙';
-      } else {
-        root.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-        icon.textContent = '☀️';
-      }
-    }
-  </script>
+    </div>
+    
+    <button onclick="document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light')" class="fixed bottom-5 right-5 z-30 p-3 bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark rounded-full shadow-lg" aria-label="Cambiar tema">
+        <svg class="h-6 w-6 hidden dark:block" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        <svg class="h-6 w-6 block dark:hidden" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+    </button>
+    
+    <script src="/static/js/app.js"></script>
 </body>
 </html>
+
+
+
+
 
 
 

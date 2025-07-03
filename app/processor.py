@@ -4,113 +4,146 @@ import json
 import shutil
 from datetime import datetime
 from math import radians, cos, sin, sqrt, atan2
+from typing import List, Dict, Any, Optional, Tuple
 
-def convertir_a_celsius(fahrenheit):
+# --- Constantes de Conversión y Geográficas ---
+PIES_A_METROS = 0.3048
+MPH_A_KMH = 1.60934
+RADIO_TERRESTRE_KM = 6371.0
+LIMITE_DISTANCIA_SEGMENTO_KM = 20.0 # Para filtrar saltos de GPS anómalos
+
+# --- Funciones de Utilidad ---
+
+def convertir_a_celsius(fahrenheit: float) -> float:
+    """Convierte grados Fahrenheit a Celsius."""
     return (fahrenheit - 32) * 5.0 / 9.0
 
-def distancia_coord(lat1, lon1, lat2, lon2):
-    R = 6371.0  # Radio terrestre en km
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = sin(dlat/2)**2 + cos(lat1)*cos(lat2)*sin(dlon/2)**2
-    return R * 2 * atan2(sqrt(a), sqrt(1 - a))
+def distancia_haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calcula la distancia en km entre dos puntos geográficos usando la fórmula de Haversine."""
+    lat1_rad, lon1_rad, lat2_rad, lon2_rad = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+    a = sin(dlat / 2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return RADIO_TERRESTRE_KM * c
 
-def procesar_archivo_csv(ruta_archivo):
+# --- Funciones de Lógica Principal ---
+
+def _leer_csv(ruta_archivo: str) -> Optional[List[Dict[str, str]]]:
+    """Lee un archivo CSV y devuelve su contenido como una lista de diccionarios."""
     try:
-        with open(ruta_archivo, newline='', encoding='utf-8') as f:
-            lector = csv.DictReader(f)
-            filas = list(lector)
+        with open(ruta_archivo, mode='r', newline='', encoding='utf-8-sig') as f:
+            return list(csv.DictReader(f))
+    except (FileNotFoundError, IOError) as e:
+        print(f"❌ Error al leer el archivo CSV {ruta_archivo}: {e}")
+        return None
 
-        if not filas:
-            print(f"⚠️ Archivo vacío: {ruta_archivo}")
-            return None
+def _extraer_metricas(filas: List[Dict[str, str]]) -> Dict[str, Any]:
+    """Extrae y calcula las métricas clave de las filas de telemetría."""
+    metricas = {
+        "altitud_max_pies": 0.0,
+        "velocidad_max_mph": 0.0,
+        "temp_max_f": -float('inf'), # Iniciar con un valor muy bajo
+        "distancia_max_origen_km": 0.0,
+        "distancia_total_km": 0.0,
+        "bateria_inicio": None,
+        "bateria_fin": None,
+    }
 
-        primer_fila = filas[0]
-        ultima_fila = filas[-1]
-
-        fecha_vuelo = primer_fila["datetime(utc)"]
-        duracion_segundos = int(ultima_fila["time(millisecond)"]) / 1000
-
-        coords_home = (
-            float(primer_fila["latitude"]),
-            float(primer_fila["longitude"])
-        )
-
-        altitud_max = 0
-        velocidad_max = 0
-        temperatura_max = 0
-        distancia_max_origen = 0
-        distancia_total = 0
-
+    try:
+        home_coords = (float(filas[0]["latitude"]), float(filas[0]["longitude"]))
         lat_prev, lon_prev = None, None
 
         for fila in filas:
             try:
-                lat = float(fila["latitude"])
-                lon = float(fila["longitude"])
-                altitud = float(fila["height_above_takeoff(feet)"])  # ✅ Altura relativa
-                velocidad = float(fila["speed(mph)"])
-                temp_f = float(fila["battery_temperature(f)"])
+                lat, lon = float(fila["latitude"]), float(fila["longitude"])
+                
+                metricas["altitud_max_pies"] = max(metricas["altitud_max_pies"], float(fila.get("height_above_takeoff(feet)", 0)))
+                metricas["velocidad_max_mph"] = max(metricas["velocidad_max_mph"], float(fila.get("speed(mph)", 0)))
+                metricas["temp_max_f"] = max(metricas["temp_max_f"], float(fila.get("battery_temperature(f)", -float('inf'))))
 
-                altitud_max = max(altitud_max, altitud)
-                velocidad_max = max(velocidad_max, velocidad)
-                temperatura_max = max(temperatura_max, temp_f)
+                dist_home = distancia_haversine(home_coords[0], home_coords[1], lat, lon)
+                metricas["distancia_max_origen_km"] = max(metricas["distancia_max_origen_km"], dist_home)
 
-                dist_home = distancia_coord(coords_home[0], coords_home[1], lat, lon)
+                if lat_prev is not None:
+                    dist_segmento = distancia_haversine(lat_prev, lon_prev, lat, lon)
+                    if dist_segmento < LIMITE_DISTANCIA_SEGMENTO_KM:
+                        metricas["distancia_total_km"] += dist_segmento
+                
+                lat_prev, lon_prev = lat, lon
 
-                if dist_home <= 20:
-                    distancia_max_origen = max(distancia_max_origen, dist_home)
+            except (ValueError, TypeError):
+                continue # Ignorar fila si tiene datos numéricos inválidos
 
-                    if lat_prev is not None and lon_prev is not None:
-                        dist_segmento = distancia_coord(lat_prev, lon_prev, lat, lon)
-                        if dist_segmento <= 20:
-                            distancia_total += dist_segmento
+        valores_bateria = [float(f["battery_percent"]) for f in filas if f.get("battery_percent")]
+        if valores_bateria:
+            metricas["bateria_inicio"] = valores_bateria[0]
+            metricas["bateria_fin"] = valores_bateria[-1]
 
-                    lat_prev, lon_prev = lat, lon
+    except (KeyError, IndexError) as e:
+        print(f"⚠️ Faltan columnas esenciales en los datos: {e}")
 
-            except Exception:
-                continue
+    return metricas
 
-        bateria_inicio = None
-        bateria_fin = None
-        try:
-            valores_bateria = [float(f["battery_percent"]) for f in filas if f["battery_percent"]]
-            if valores_bateria:
-                bateria_inicio = valores_bateria[0]
-                bateria_fin = valores_bateria[-1]
-        except Exception:
-            pass
+def _crear_artefactos_vuelo(id_vuelo: str, ruta_origen_csv: str):
+    """Crea el directorio y copia el archivo CSV del vuelo."""
+    directorio_salida = os.path.join("data", "vuelos", id_vuelo)
+    os.makedirs(directorio_salida, exist_ok=True)
+    ruta_destino_csv = os.path.join(directorio_salida, "datos.csv")
+    shutil.copyfile(ruta_origen_csv, ruta_destino_csv)
 
+
+def procesar_archivo_csv(ruta_archivo: str) -> Optional[Dict[str, Any]]:
+    """
+    Función principal para procesar un único archivo CSV de un vuelo.
+    Extrae telemetría, calcula un resumen y guarda los artefactos.
+
+    Args:
+        ruta_archivo: La ruta al archivo CSV original.
+
+    Returns:
+        Un diccionario con el resumen del vuelo o None si ocurre un error.
+    """
+    print(f"⚙️  Procesando: {os.path.basename(ruta_archivo)}")
+    
+    filas = _leer_csv(ruta_archivo)
+    if not filas:
+        print(f"⚠️  Archivo vacío o no legible: {ruta_archivo}")
+        return None
+
+    try:
+        # Extracción de datos básicos
         id_vuelo = os.path.splitext(os.path.basename(ruta_archivo))[0]
-        directorio_salida = os.path.join("data/vuelos", id_vuelo)
-        os.makedirs(directorio_salida, exist_ok=True)
+        fecha_vuelo = filas[0]["datetime(utc)"]
+        duracion_segundos = int(filas[-1]["time(millisecond)"]) / 1000
 
-        ruta_destino_csv = os.path.join(directorio_salida, "datos.csv")
-        shutil.copyfile(ruta_archivo, ruta_destino_csv)
+        # Cálculo de métricas complejas
+        metricas = _extraer_metricas(filas)
+        
+        # Guardar artefactos (directorio y copia del CSV)
+        _crear_artefactos_vuelo(id_vuelo, ruta_archivo)
 
-        with open(os.path.join(directorio_salida, "raw_data.json"), "w", encoding="utf-8") as f_json:
-            json.dump(filas, f_json, ensure_ascii=False, indent=2)
-
+        # Ensamblar el resumen final
         resumen = {
             "id": id_vuelo,
             "fecha": fecha_vuelo,
             "duracion_segundos": round(duracion_segundos, 1),
-            "altitud_maxima_metros": round(altitud_max * 0.3048, 1),
-            "distancia_maxima_km": round(distancia_max_origen, 3),
-            "distancia_recorrida_km": round(distancia_total, 3),
-            "temperatura_maxima_bateria_c": round(convertir_a_celsius(temperatura_max), 1),
-            "velocidad_maxima_kmh": round(velocidad_max * 1.60934, 1)
+            "altitud_maxima_metros": round(metricas["altitud_max_pies"] * PIES_A_METROS, 1),
+            "distancia_maxima_km": round(metricas["distancia_max_origen_km"], 3),
+            "distancia_recorrida_km": round(metricas["distancia_total_km"], 3),
+            "temperatura_maxima_bateria_c": round(convertir_a_celsius(metricas["temp_max_f"]), 1),
+            "velocidad_maxima_kmh": round(metricas["velocidad_max_mph"] * MPH_A_KMH, 1)
         }
 
-        if bateria_inicio is not None and bateria_fin is not None:
-            resumen["bateria_inicio_porcentaje"] = round(bateria_inicio, 1)
-            resumen["bateria_fin_porcentaje"] = round(bateria_fin, 1)
-
+        if metricas["bateria_inicio"] is not None:
+            resumen["bateria_inicio_porcentaje"] = round(metricas["bateria_inicio"], 1)
+            resumen["bateria_fin_porcentaje"] = round(metricas["bateria_fin"], 1)
+        
+        print(f"✅ Procesamiento completado para: {id_vuelo}")
         return resumen
 
-    except Exception as e:
-        print(f"❌ Error procesando {ruta_archivo}: {e}")
+    except (KeyError, IndexError, ValueError) as e:
+        print(f"❌ Error crítico procesando {ruta_archivo}: Faltan datos esenciales. Error: {e}")
         return None
 
 
