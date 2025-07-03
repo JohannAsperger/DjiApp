@@ -60,6 +60,17 @@ function inicializarGauges() {
 
 // --- LÓGICA PRINCIPAL DE LA APLICACIÓN ---
 window.cargarVuelo = async (vueloId) => {
+  // ✅ Limpieza completa si hay un visor activo
+  if (viewer) {
+    if (tickListener) {
+      viewer.clock.onTick.removeEventListener(tickListener);
+      tickListener = null;
+    }
+    viewer.destroy();
+    viewer = null;
+    flightEntity = null;
+  }
+
   const resumenView = document.getElementById("resumen");
   const detalleView = document.getElementById("detalle-vuelo");
 
@@ -152,13 +163,13 @@ async function inicializarCesiumViewer({ coordenadas, tiempos, fecha_inicio, bat
 
   viewer.clock.shouldAnimate = true;
   viewer.trackedEntity = undefined; // Cámara libre
-  
+
   if (coordenadas.length > 0) {
-      const primeraPos = Cesium.Cartesian3.fromDegrees(coordenadas[0].lon, coordenadas[0].lat, coordenadas[0].alt);
-      viewer.scene.camera.flyToBoundingSphere(new Cesium.BoundingSphere(primeraPos), {
-        offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), 100),
-        duration: 0
-      });
+    const primeraPos = Cesium.Cartesian3.fromDegrees(coordenadas[0].lon, coordenadas[0].lat, coordenadas[0].alt);
+    viewer.scene.camera.flyToBoundingSphere(new Cesium.BoundingSphere(primeraPos), {
+      offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), 100),
+      duration: 0
+    });
   }
 
   tickListener = () => {
@@ -166,18 +177,17 @@ async function inicializarCesiumViewer({ coordenadas, tiempos, fecha_inicio, bat
     const currentPosition = positionProperty.getValue(currentTime);
 
     if (currentPosition) {
-        // Añade la posición actual al array de la trayectoria
-        pathPositions.push(currentPosition);
+      pathPositions.push(currentPosition);
     }
-    
+
     const t = Cesium.JulianDate.secondsDifference(currentTime, start);
     const i = obtenerIndiceMasCercano(tiempos, t);
 
     if (coordenadas[i]) {
-        gauges.velocidad?.refresh(Math.max(0, velocidades_horizontal[i]).toFixed(1));
-        gauges.velocidadVertical?.refresh(velocidades_vertical[i].toFixed(1));
-        gauges.altitud?.refresh(coordenadas[i].alt.toFixed(1));
-        gauges.bateria?.refresh(baterias[i]);
+      gauges.velocidad?.refresh(Math.max(0, velocidades_horizontal[i]).toFixed(1));
+      gauges.velocidadVertical?.refresh(velocidades_vertical[i].toFixed(1));
+      gauges.altitud?.refresh(coordenadas[i].alt.toFixed(1));
+      gauges.bateria?.refresh(baterias[i]);
     }
   };
   viewer.clock.onTick.addEventListener(tickListener);
@@ -201,6 +211,7 @@ window.volverAlResumen = function () {
     tickListener = null;
   }
 };
+
 
 
 
