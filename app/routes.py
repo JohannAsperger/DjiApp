@@ -7,9 +7,6 @@ from datetime import datetime, timezone
 rutas = Blueprint("rutas", __name__)
 DATA_PATH = os.path.join("data", "vuelos")
 
-# SE HA ELIMINADO LA RUTA DUPLICADA @rutas.route("/")
-# La lógica para la página de inicio ahora reside únicamente en main.py
-
 @rutas.route("/vuelo/<vuelo_id>")
 def obtener_vuelo(vuelo_id):
     print(f"🔍 Solicitando vuelo: {vuelo_id}")
@@ -33,16 +30,13 @@ def obtener_vuelo(vuelo_id):
         velocidades_verticales = []
         fecha_inicio = None
 
-        with open(datos_path, 'r', encoding='utf-8-sig') as f: # Usar utf-8-sig para manejar el BOM
+        with open(datos_path, 'r', encoding='utf-8-sig') as f:
             reader = csv.reader(f)
             encabezados = next(reader)
-            # Limpieza robusta de encabezados
             encabezados = [h.strip().replace("\ufeff", "") for h in encabezados]
 
             try:
-                # CORRECCIÓN: Usar la altitud relativa al despegue
                 idx_alt = encabezados.index("height_above_takeoff(feet)")
-                
                 idx_tiempo = encabezados.index("time(millisecond)")
                 idx_lat = encabezados.index("latitude")
                 idx_lon = encabezados.index("longitude")
@@ -50,43 +44,41 @@ def obtener_vuelo(vuelo_id):
                 idx_bateria = encabezados.index("battery_percent")
                 idx_vel_h = encabezados.index("speed(mph)")
                 idx_vel_v = None
-                
-                # Búsqueda más robusta de la columna de velocidad vertical
                 for posible_nombre in ["zSpeed(mph)", " zSpeed(mph)", "vz(m/s)", "vertical_velocity(m/s)", "vertical_speed(m/s)"]:
                     if posible_nombre in encabezados:
                         idx_vel_v = encabezados.index(posible_nombre)
                         break
-
             except ValueError as e:
                 print(f"❌ Error encontrando columnas: {e}")
                 return jsonify({"error": f"Columna requerida no encontrada: {e}"}), 400
 
+            try:
+                idx_is_video = encabezados.index("isVideo")
+                idx_is_photo = encabezados.index("isPhoto")
+            except ValueError:
+                idx_is_video = idx_is_photo = None
+
+            grabando_video = []
+            tomando_foto = []
+
             for fila in reader:
                 try:
-                    # Usar la altitud relativa y convertirla a metros
                     alt_raw = fila[idx_alt].strip()
                     alt = float(alt_raw) * 0.3048 if alt_raw else 0.0
-
-                    # El resto de las conversiones ya eran correctas
                     tiempo_ms = int(fila[idx_tiempo])
                     lat = float(fila[idx_lat])
                     lon = float(fila[idx_lon])
-                    
                     bat_raw = fila[idx_bateria].strip()
                     bat = int(bat_raw) if bat_raw else 0
-
                     vel_h_raw = fila[idx_vel_h].strip()
-                    # Convertir de mph a km/h
                     vel_h = float(vel_h_raw) * 1.60934 if vel_h_raw else 0.0
 
                     if idx_vel_v is not None:
                         vel_v_raw = fila[idx_vel_v].strip()
                         if vel_v_raw:
-                            # DJI reporta Z-speed positiva hacia abajo, la invertimos
-                            # y convertimos de mph a m/s
                             if "mph" in encabezados[idx_vel_v]:
                                 vel_v = -float(vel_v_raw) * 0.44704 
-                            else: # Asumir m/s
+                            else:
                                 vel_v = -float(vel_v_raw)
                         else:
                             vel_v = 0.0
@@ -101,12 +93,14 @@ def obtener_vuelo(vuelo_id):
                         dt = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
                         fecha_inicio = dt.isoformat().replace("+00:00", "Z")
                     
-                    # CORRECCIÓN: Usar la altitud relativa 'alt' que ya calculamos
                     puntos.append([lat, lon, alt])
                     tiempos.append(tiempo_ms)
                     baterias.append(bat)
                     velocidades_horizontales.append(vel_h)
                     velocidades_verticales.append(vel_v)
+
+                    grabando_video.append(bool(int(fila[idx_is_video]))) if idx_is_video is not None else grabando_video.append(False)
+                    tomando_foto.append(bool(int(fila[idx_is_photo]))) if idx_is_photo is not None else tomando_foto.append(False)
 
                 except (ValueError, IndexError) as e:
                     print(f"⚠️ Error procesando fila: {fila} -> {e}")
@@ -116,7 +110,6 @@ def obtener_vuelo(vuelo_id):
             return jsonify({"error": "Vuelo sin datos válidos"}), 400
         
         if fecha_inicio is None:
-            # Esto puede ocurrir si el CSV está vacío o no tiene filas con fecha
             return jsonify({"error": "No se encontraron datos de fecha válidos"}), 400
 
         tiempos_rel = [(t - tiempos[0]) / 1000.0 for t in tiempos]
@@ -128,8 +121,9 @@ def obtener_vuelo(vuelo_id):
             "tiempos": tiempos_rel,
             "baterias": baterias,
             "velocidades_horizontal": velocidades_horizontales,
-            # CORRECCIÓN: Clave JSON corregida a plural para que coincida con el JS
             "velocidades_vertical": velocidades_verticales,
+            "grabando_video": grabando_video,
+            "tomando_foto": tomando_foto,
             "resumen": resumen
         })
 
