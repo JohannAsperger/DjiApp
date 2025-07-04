@@ -128,6 +128,19 @@
       <div id="info-dron" class="grid grid-cols-2 gap-4">
         <!-- Contenido dinámico -->
       </div>
+      <!-- DENTRO DE LA TARJETA DE DATOS DE VUELO (después del div #info-dron) -->
+<div id="indicadores-dron" class="mt-6 grid grid-cols-2 gap-4 text-center">
+  <div class="flex flex-col items-center">
+    <div id="led-video" class="w-5 h-5 rounded-full bg-gray-500 shadow-md transition-colors duration-300"></div>
+    <span class="mt-1 text-sm text-slate-600 dark:text-slate-400">Grabando</span>
+  </div>
+  <div class="flex flex-col items-center">
+    <div id="led-foto" class="w-5 h-5 rounded-full bg-gray-500 shadow-md transition-colors duration-300"></div>
+    <span class="mt-1 text-sm text-slate-600 dark:text-slate-400">Foto</span>
+  </div>
+</div>
+
+
     </div>
   </div>
 </div>
@@ -138,6 +151,34 @@
     </button>
 
     <script src="/static/js/app.js" defer></script>
+    <script>
+  setInterval(() => {
+    const ledVideo = document.getElementById("led-video");
+    const ledFoto = document.getElementById("led-foto");
+
+    // Estado de grabación
+    if (window.isRecording) {
+      ledVideo.classList.remove("bg-gray-500");
+      ledVideo.classList.add("bg-red-500");
+    } else {
+      ledVideo.classList.remove("bg-red-500");
+      ledVideo.classList.add("bg-gray-500");
+    }
+
+    // Estado de foto (enciende por 2s, luego vuelve a gris)
+    if (window.isTakingPhoto) {
+      ledFoto.classList.remove("bg-gray-500");
+      ledFoto.classList.add("bg-green-400");
+      setTimeout(() => {
+        ledFoto.classList.remove("bg-green-400");
+        ledFoto.classList.add("bg-gray-500");
+      }, 2000);
+      window.isTakingPhoto = false;
+    }
+  }, 300);
+</script>
+
+
 </body>
 </html>
 

@@ -1,6 +1,4 @@
-/**
- * DJI FlightScope - Aplicación de Visualización de Vuelos
- */
+// ... INICIO del archivo sin cambios previos ...
 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk0M2RjOC0xYzc5LTQyZTgtOTMzYy1iOGMzOGMyMjFkNGIiLCJpZCI6MzEyMjA4LCJpYXQiOjE3NDk5MjM2OTZ9.hNylnne1DsKBD6JknfqBaB0NwC2YeRd2B0LqiCryCxM';
 
 let viewer = null;
@@ -8,12 +6,15 @@ let flightEntity = null;
 let tickListener = null;
 const gauges = {};
 
-// --- FUNCIONES DE UTILIDAD ---
+let videoFlags = [];
+let fotoFlags = [];
+let isRecording = false;
+let isTakingPhoto = false;
+
 function obtenerIndiceMasCercano(tiempos, actual) {
   return tiempos.reduce((acc, t, i) => Math.abs(t - actual) < Math.abs(tiempos[acc] - actual) ? i : acc, 0);
 }
 
-// --- RENDERIZADO Y ACTUALIZACIÓN DE UI ---
 function actualizarDetallesVuelo(resumenData) {
   const infoDronDiv = document.getElementById("info-dron");
   if (!infoDronDiv) return;
@@ -58,9 +59,7 @@ function inicializarGauges() {
   else gauges.velocidadVertical.refresh(0);
 }
 
-// --- LÓGICA PRINCIPAL DE LA APLICACIÓN ---
 window.cargarVuelo = async (vueloId) => {
-  // ✅ Limpieza completa si hay un visor activo
   if (viewer) {
     if (tickListener) {
       viewer.clock.onTick.removeEventListener(tickListener);
@@ -90,6 +89,19 @@ window.cargarVuelo = async (vueloId) => {
     actualizarDetallesVuelo(datos.resumen);
     inicializarGauges();
     await inicializarCesiumViewer(datos);
+
+    videoFlags = datos.grabando_video || [];
+    fotoFlags = datos.tomando_foto || [];
+
+    // 🔐 Validar longitud
+    if (videoFlags.length !== datos.tiempos.length) {
+      console.warn("⚠️ videoFlags desalineado. Corrigiendo.");
+      videoFlags = new Array(datos.tiempos.length).fill(false);
+    }
+    if (fotoFlags.length !== datos.tiempos.length) {
+      console.warn("⚠️ fotoFlags desalineado. Corrigiendo.");
+      fotoFlags = new Array(datos.tiempos.length).fill(false);
+    }
 
   } catch (e) {
     console.error("❌ Error al cargar el vuelo:", e);
@@ -145,24 +157,20 @@ async function inicializarCesiumViewer({ coordenadas, tiempos, fecha_inicio, bat
       color: Cesium.Color.fromCssColorString('#3b82f6'),
       outlineColor: Cesium.Color.WHITE,
       outlineWidth: 2,
-    },
-    // Se elimina la propiedad 'path' de esta entidad.
+    }
   });
 
-  // Se crea una entidad separada para la línea de la trayectoria.
   const pathPositions = [];
   viewer.entities.add({
     polyline: {
-      positions: new Cesium.CallbackProperty(() => {
-        return pathPositions;
-      }, false),
+      positions: new Cesium.CallbackProperty(() => pathPositions, false),
       width: 2,
       material: Cesium.Color.RED.withAlpha(0.9),
     }
   });
 
   viewer.clock.shouldAnimate = true;
-  viewer.trackedEntity = undefined; // Cámara libre
+  viewer.trackedEntity = undefined;
 
   if (coordenadas.length > 0) {
     const primeraPos = Cesium.Cartesian3.fromDegrees(coordenadas[0].lon, coordenadas[0].lat, coordenadas[0].alt);
@@ -184,12 +192,34 @@ async function inicializarCesiumViewer({ coordenadas, tiempos, fecha_inicio, bat
     const i = obtenerIndiceMasCercano(tiempos, t);
 
     if (coordenadas[i]) {
+      if (typeof videoFlags[i] !== "undefined") isRecording = videoFlags[i];
+      if (typeof fotoFlags[i] !== "undefined") isTakingPhoto = fotoFlags[i];
+
+      // 🟢🔴 ACTUALIZACIÓN VISUAL DE INDICADORES
+      const ledVideo = document.getElementById("led-video");
+      if (ledVideo) {
+        ledVideo.classList.remove("bg-red-500", "bg-gray-500");
+        ledVideo.classList.add(isRecording ? "bg-red-500" : "bg-gray-500");
+      }
+
+      const ledFoto = document.getElementById("led-foto");
+      if (ledFoto && isTakingPhoto) {
+        ledFoto.classList.remove("bg-gray-500");
+        ledFoto.classList.add("bg-green-400");
+        setTimeout(() => {
+          ledFoto.classList.remove("bg-green-400");
+          ledFoto.classList.add("bg-gray-500");
+        }, 2000);
+        isTakingPhoto = false;
+      }
+
       gauges.velocidad?.refresh(Math.max(0, velocidades_horizontal[i]).toFixed(1));
       gauges.velocidadVertical?.refresh(velocidades_vertical[i].toFixed(1));
       gauges.altitud?.refresh(coordenadas[i].alt.toFixed(1));
       gauges.bateria?.refresh(baterias[i]);
     }
   };
+
   viewer.clock.onTick.addEventListener(tickListener);
 }
 
@@ -211,6 +241,8 @@ window.volverAlResumen = function () {
     tickListener = null;
   }
 };
+
+
 
 
 
