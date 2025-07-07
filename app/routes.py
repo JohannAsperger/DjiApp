@@ -7,6 +7,58 @@ from datetime import datetime, timezone
 rutas = Blueprint("rutas", __name__)
 DATA_PATH = os.path.join("data", "vuelos")
 
+@rutas.route("/upload_vuelo", methods=["POST"])
+def upload_vuelo():
+    """
+    Permite subir uno o varios archivos CSV de vuelo desde el frontend.
+    Guarda cada archivo en el directorio correspondiente y procesa cada vuelo.
+    """
+    from flask import request
+    import shutil
+    files = request.files.getlist('files')
+    if not files or all(not f.filename.lower().endswith('.csv') for f in files):
+        return jsonify({"error": "Debes seleccionar al menos un archivo CSV válido."}), 400
+
+    resultados = []
+    from app.processor import procesar_archivo_csv
+    for file in files:
+        if not file or not file.filename.lower().endswith('.csv'):
+            resultados.append({"filename": file.filename if file else '', "success": False, "error": "Archivo no es CSV."})
+            continue
+        base_name = os.path.splitext(file.filename)[0]
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        vuelo_id = f"{base_name}_{timestamp}"
+        vuelo_path = os.path.join(DATA_PATH, vuelo_id)
+        os.makedirs(vuelo_path, exist_ok=True)
+        csv_path = os.path.join(vuelo_path, 'datos.csv')
+        file.save(csv_path)
+        try:
+            # Validar encabezados mínimos
+            with open(csv_path, 'r', encoding='utf-8-sig') as f:
+                reader = csv.reader(f)
+                encabezados = next(reader)
+                encabezados = [h.strip().replace("\ufeff", "") for h in encabezados]
+                required = ["height_above_takeoff(feet)", "time(millisecond)", "latitude", "longitude", "datetime(utc)", "battery_percent", "speed(mph)"]
+                for col in required:
+                    if col not in encabezados:
+                        shutil.rmtree(vuelo_path)
+                        resultados.append({"filename": file.filename, "success": False, "error": f"Falta columna: {col}"})
+                        break
+                else:
+                    # Procesar CSV y guardar resumen real
+                    resumen = procesar_archivo_csv(csv_path)
+                    if resumen is None:
+                        shutil.rmtree(vuelo_path)
+                        resultados.append({"filename": file.filename, "success": False, "error": "Error procesando el archivo CSV."})
+                        continue
+                    with open(os.path.join(vuelo_path, 'resumen.json'), 'w', encoding='utf-8') as f2:
+                        json.dump(resumen, f2, ensure_ascii=False, indent=2)
+                    resultados.append({"filename": file.filename, "success": True, "vuelo_id": vuelo_id})
+        except Exception as e:
+            shutil.rmtree(vuelo_path)
+            resultados.append({"filename": file.filename, "success": False, "error": f"Error procesando: {e}"})
+    return jsonify(resultados), 200
+
 @rutas.route("/vuelo/<vuelo_id>")
 def obtener_vuelo(vuelo_id):
     print(f"🔍 Solicitando vuelo: {vuelo_id}")

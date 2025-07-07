@@ -1,172 +1,322 @@
 <!DOCTYPE html>
 <html lang="es" class="">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DJIApp | FlightScope</title>
-
-    <script>
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DJIApp | FlightScope</title>
+  <script>
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#3b82f6',
+              dark: '#2563eb',
+              light: '#93c5fd',
             },
-            colors: {
-              brand: {
-                DEFAULT: '#3b82f6',
-                dark: '#2563eb',
-                light: '#93c5fd',
-              },
-              background: {
-                light: '#f1f5f9',
-                dark: '#0f172a',
-              },
-              card: {
-                light: '#ffffff',
-                dark: '#1e293b',
-              },
-              text: {
-                light: '#1e293b',
-                dark: '#f1f5f9',
-              },
+            background: {
+              light: '#f1f5f9',
+              dark: '#0f172a',
+            },
+            card: {
+              light: '#ffffff',
+              dark: '#1e293b',
+            },
+            text: {
+              light: '#1e293b',
+              dark: '#f1f5f9',
             },
           },
         },
-      };
-    </script>
-    
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
-    
-    <style type="text/tailwindcss">
-        @layer base { body { font-family: 'Inter', sans-serif; } }
-        @layer components {
-            #cesiumContainer { width: 100%; height: 100%; }
-            #detalle-vuelo { display: none; }
-            .gauge-container { width: 100%; max-width: 250px; margin: auto; }
-            .gauge { width: 100% !important; height: auto !important; }
-            .justgage-title { fill: #9ca3af; font-weight: 600; }
-            .justgage-value { fill: #1e293b; }
-            .dark .justgage-value { fill: #f1f5f9; }
-        }
-    </style>
-
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/raphael@2.3.0/raphael.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/justgage@1.3.5/justgage.min.js"></script>
+      },
+    };
+  </script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <style type="text/tailwindcss">
+    @layer base { body { font-family: 'Inter', sans-serif; } }
+    @layer components {
+      #cesiumContainer { width: 100%; height: 100%; }
+      .gauge-container { width: 100%; max-width: 250px; margin: auto; }
+      .gauge { width: 100% !important; height: auto !important; }
+      .justgage-title { fill: #9ca3af; font-weight: 600; }
+      .justgage-value { fill: #1e293b; }
+      .dark .justgage-value { fill: #f1f5f9; }
+    }
+  </style>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/raphael@2.3.0/raphael.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/justgage@1.3.5/justgage.min.js"></script>
 </head>
 <body class="font-sans bg-background-light text-text-light dark:bg-background-dark dark:text-text-dark transition-colors duration-300">
 
-    <div id="resumen" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <h1 class="text-3xl sm:text-4xl font-extrabold mb-6 text-text-light dark:text-text-dark">Panel de Vuelos</h1>
-        <div id="resumen-general" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
-            {% if resumen_general %}
-                <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Vuelos</p><strong class="text-4xl font-extrabold text-brand">{{ resumen_general.cantidad_vuelos }}</strong></div>
-                <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Duración (h)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ "%.1f"|format(resumen_general.duracion_total_min / 60) }}</strong></div>
-                <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Distancia (km)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.distancia_total_km }}</strong></div>
-                <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Dist. Máx. (km)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.distancia_maxima_km }}</strong></div>
-                <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Altitud Máx. (m)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.altitud_maxima_metros }}</strong></div>
-                <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Vel. Máx. (km/h)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.velocidad_maxima_kmh }}</strong></div>
-                <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Temp. Máx. (°C)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.temperatura_maxima_bateria_c }}</strong></div>
-                <div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-lg text-center"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Recorrido Máx. (km)</p><strong class="text-3xl font-bold text-text-light dark:text-text-dark">{{ resumen_general.distancia_recorrida_max_km }}</strong></div>
-            {% endif %}
-        </div>
-        <h2 class="text-2xl font-bold mb-4 text-text-light dark:text-text-dark">Historial de Vuelos</h2>
-        <ul id="lista-vuelos" class="space-y-3">
-            {% for vuelo in vuelos %}
-            <li onclick="window.cargarVuelo('{{ vuelo.id }}')" role="button" class="cursor-pointer bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-md hover:ring-2 hover:ring-brand dark:hover:bg-slate-700/50 transition-all flex justify-between items-center">
-                <span class="font-semibold text-brand">{{ vuelo.id }}</span>
-                <span class="font-medium text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</span>
-                <span class="text-sm text-slate-500 dark:text-slate-400">{{ "%.1f min"|format(vuelo.duracion_segundos / 60) }}</span>
-            </li>
-            {% endfor %}
+<!-- Modal de carga de vuelo (múltiple, drag & drop) -->
+<div id="modal-upload-vuelo" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300 hidden">
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-slate-200 dark:border-slate-700">
+    <button onclick="cerrarModalUploadVuelo()" class="absolute top-4 right-4 text-slate-400 hover:text-brand dark:hover:text-brand text-3xl transition">×</button>
+    <h2 class="text-2xl font-extrabold mb-6 text-center text-text-light dark:text-text-dark tracking-tight">Cargar vuelos</h2>
+    <form id="form-upload-vuelo" class="space-y-5" enctype="multipart/form-data">
+      <div id="drop-zone" class="flex flex-col items-center justify-center border-2 border-dashed border-brand/40 rounded-xl p-8 bg-brand/5 cursor-pointer transition hover:bg-brand/10 focus:ring-2 focus:ring-brand outline-none" tabindex="0">
+        <svg class="w-12 h-12 text-brand mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+        <span class="text-slate-600 dark:text-slate-300 text-base font-medium">Arrastra uno o más archivos CSV aquí o haz clic para seleccionarlos</span>
+        <input type="file" id="input-csv-vuelo" name="files" accept=".csv" multiple class="hidden" />
+      </div>
+      <ul id="upload-vuelo-list" class="text-xs mt-2 min-h-[1.5em] text-center"></ul>
+      <button type="submit" class="w-full bg-brand text-white font-bold py-2.5 rounded-xl shadow hover:bg-brand-dark transition-colors text-lg tracking-wide">Subir vuelos</button>
+    </form>
+    <div id="upload-vuelo-msg" class="mt-5 text-center text-base"></div>
+  </div>
+</div>
+<!-- Botón sticky para cambiar tema -->
+<button id="btn-theme-toggle" onclick="document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light')" class="fixed bottom-6 right-6 z-50 p-4 bg-card-light dark:bg-card-dark text-brand dark:text-brand-dark rounded-full shadow-2xl border border-slate-200 dark:border-slate-700 hover:bg-brand hover:text-white dark:hover:bg-brand-dark dark:hover:text-white transition-colors focus:outline-none focus:ring-4 focus:ring-brand/30 animate-fade-in" aria-label="Cambiar tema">
+  <svg class="h-7 w-7 hidden dark:block" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+  <svg class="h-7 w-7 block dark:hidden" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+</button>
+
+<!-- Panel principal -->
+<div class="min-h-screen flex flex-col bg-background-light dark:bg-background-dark transition-colors duration-300">
+  <!-- Header eliminado para vista de vuelo individual -->
+  
+  <!-- CORRECCIÓN 1: Se envuelve todo el contenido del resumen en un único div con id="resumen" -->
+  <!-- Esto permite que el app.js original pueda encontrarlo y ocultarlo. -->
+  <div id="resumen">
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-8 flex flex-col gap-10">
+      <!-- Resumen general -->
+      <section id="resumen-general-cards" class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {% if resumen_general %}
+          <div class="bg-card-light dark:bg-card-dark p-6 rounded-2xl shadow flex flex-col items-center gap-2 border border-slate-100 dark:border-slate-800">
+            <span class="text-slate-500 dark:text-slate-400 text-sm font-semibold">Vuelos</span>
+            <span class="text-4xl font-extrabold text-brand">{{ resumen_general.cantidad_vuelos }}</span>
+          </div>
+          <div class="bg-card-light dark:bg-card-dark p-6 rounded-2xl shadow flex flex-col items-center gap-2 border border-slate-100 dark:border-slate-800">
+            <span class="text-slate-500 dark:text-slate-400 text-sm font-semibold">Duración (h)</span>
+            <span class="text-3xl font-bold">{{ "%.1f"|format(resumen_general.duracion_total_min / 60) }}</span>
+          </div>
+          <div class="bg-card-light dark:bg-card-dark p-6 rounded-2xl shadow flex flex-col items-center gap-2 border border-slate-100 dark:border-slate-800">
+            <span class="text-slate-500 dark:text-slate-400 text-sm font-semibold">Distancia (km)</span>
+            <span class="text-3xl font-bold">{{ resumen_general.distancia_total_km }}</span>
+          </div>
+          <div class="bg-card-light dark:bg-card-dark p-6 rounded-2xl shadow flex flex-col items-center gap-2 border border-slate-100 dark:border-slate-800">
+            <span class="text-slate-500 dark:text-slate-400 text-sm font-semibold">Dist. Máx. (km)</span>
+            <span class="text-3xl font-bold">{{ resumen_general.distancia_maxima_km }}</span>
+          </div>
+          <div class="bg-card-light dark:bg-card-dark p-6 rounded-2xl shadow flex flex-col items-center gap-2 border border-slate-100 dark:border-slate-800">
+            <span class="text-slate-500 dark:text-slate-400 text-sm font-semibold">Altitud Máx. (m)</span>
+            <span class="text-3xl font-bold">{{ resumen_general.altitud_maxima_metros }}</span>
+          </div>
+          <div class="bg-card-light dark:bg-card-dark p-6 rounded-2xl shadow flex flex-col items-center gap-2 border border-slate-100 dark:border-slate-800">
+            <span class="text-slate-500 dark:text-slate-400 text-sm font-semibold">Vel. Máx. (km/h)</span>
+            <span class="text-3xl font-bold">{{ resumen_general.velocidad_maxima_kmh }}</span>
+          </div>
+          <div class="bg-card-light dark:bg-card-dark p-6 rounded-2xl shadow flex flex-col items-center gap-2 border border-slate-100 dark:border-slate-800">
+            <span class="text-slate-500 dark:text-slate-400 text-sm font-semibold">Temp. Máx. (°C)</span>
+            <span class="text-3xl font-bold">{{ resumen_general.temperatura_maxima_bateria_c }}</span>
+          </div>
+          <div class="bg-card-light dark:bg-card-dark p-6 rounded-2xl shadow flex flex-col items-center gap-2 border border-slate-100 dark:border-slate-800">
+            <span class="text-slate-500 dark:text-slate-400 text-sm font-semibold">Recorrido Máx. (km)</span>
+            <span class="text-3xl font-bold">{{ resumen_general.distancia_recorrida_max_km }}</span>
+          </div>
+        {% endif %}
+      </section>
+      <!-- Botón de cargar vuelo entre resumen y lista -->
+      <div class="w-full flex justify-center mb-8 animate-fade-in">
+        <button id="btn-upload-vuelo" onclick="abrirModalUploadVuelo()" class="flex items-center gap-3 px-7 py-4 bg-gradient-to-r from-brand to-brand-dark text-white font-extrabold text-lg rounded-2xl shadow-xl hover:scale-105 hover:from-brand-dark hover:to-brand focus:outline-none focus:ring-4 focus:ring-brand/30 transition-all duration-200">
+          <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+          Cargar vuelos CSV
+        </button>
+      </div>
+      <!-- Historial de vuelos -->
+      <section id="historial-vuelos" class="w-full bg-card-light dark:bg-card-dark rounded-2xl shadow-lg p-6 border border-slate-100 dark:border-slate-800 flex flex-col items-center">
+        <h2 class="text-2xl font-bold mb-6 text-text-light dark:text-text-dark tracking-tight text-center">Historial de Vuelos</h2>
+        <ul id="lista-vuelos" class="space-y-4 w-full">
+          {% for vuelo in vuelos %}
+          <li data-vuelo-id="{{ vuelo.id }}" role="button" class="cursor-pointer bg-brand/5 dark:bg-brand/10 p-5 rounded-xl shadow-sm hover:ring-2 hover:ring-brand dark:hover:bg-slate-700/40 transition-all flex flex-col sm:flex-row justify-between items-center gap-2 border border-transparent hover:border-brand/30">
+            <span class="font-medium text-text-light dark:text-text-dark"></span>
+            <span class="font-medium text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</span>
+            <span class="text-sm text-slate-500 dark:text-slate-400">{{ "%.1f min"|format(vuelo.duracion_segundos / 60) }}</span>
+          </li>
+          {% endfor %}
         </ul>
-    </div>
+      </section>
+    </main>
+  </div>
 
-    <div id="detalle-vuelo" class="w-full px-4 sm:px-6 lg:px-8">
-  <button onclick="window.volverAlResumen()" class="fixed bottom-5 left-5 z-30 px-4 py-2 bg-brand text-white font-semibold rounded-lg shadow-md hover:bg-brand-dark transition-colors">
-    ← Volver al Panel
-  </button>
-
-  <!-- Layout principal mapa + datos -->
-  <div class="flex flex-col xl:flex-row gap-6 max-w-[1800px] mx-auto w-full">
-    <!-- Mapa (2/3 en pantallas grandes) -->
-    <div class="xl:w-2/3">
-      <div class="relative h-[60vh] rounded-lg overflow-hidden shadow-xl border border-slate-200 dark:border-slate-700">
-        <div id="cesiumContainer"></div>
+  <!-- CORRECCIÓN 2: Se añade la clase 'hidden' a la sección de detalle para que esté oculta al cargar la página. -->
+  <section id="detalle-vuelo" class="w-full hidden">
+    <div class="flex flex-col md:flex-row w-full h-[100dvh] max-h-[100dvh] gap-6 p-4 md:p-8 bg-gradient-to-br from-brand/10 via-background-light/80 to-brand/5 dark:from-brand-dark/20 dark:via-background-dark/80 dark:to-brand-dark/10">
+      <!-- Mapa y Telemetría -->
+      <div class="flex-1 flex flex-col min-w-0 h-full gap-4 md:max-w-[calc(100vw-480px)]">
+        <div class="relative flex-1 min-h-0 rounded-3xl overflow-hidden shadow-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl flex flex-col">
+          <div id="cesiumContainer" class="w-full h-full min-h-0 flex-1"></div>
+        </div>
+        <div class="flex flex-row gap-4 w-full justify-center">
+          <div class="gauge-container flex flex-col items-center bg-white/60 dark:bg-slate-800/60 rounded-2xl shadow p-2 max-w-[220px] w-full">
+            <div id="gauge-altitud"></div>
+            <p class="text-center mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">Altitud (m)</p>
+          </div>
+          <div class="gauge-container flex flex-col items-center bg-white/60 dark:bg-slate-800/60 rounded-2xl shadow p-2 max-w-[220px] w-full">
+            <div id="gauge-velocidad"></div>
+            <p class="text-center mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">Velocidad (km/h)</p>
+          </div>
+          <div class="gauge-container flex flex-col items-center bg-white/60 dark:bg-slate-800/60 rounded-2xl shadow p-2 max-w-[220px] w-full">
+            <div id="gauge-velocidad-vertical"></div>
+            <p class="text-center mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">Vel. Vertical (m/s)</p>
+          </div>
+          <div class="gauge-container flex flex-col items-center bg-white/60 dark:bg-slate-800/60 rounded-2xl shadow p-2 max-w-[220px] w-full">
+            <div id="gauge-bateria"></div>
+            <p class="text-center mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">Batería (%)</p>
+          </div>
+        </div>
       </div>
-
-      <!-- Telemetría debajo del mapa -->
-      <div class="mt-6 bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-lg">
-        <h3 class="text-xl font-bold mb-4 text-center text-text-light dark:text-text-dark">Telemetría en Vivo</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="gauge-container flex flex-col items-center"><div id="gauge-altitud"></div><p class="text-center mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Altitud (m)</p></div>
-          <div class="gauge-container flex flex-col items-center"><div id="gauge-velocidad"></div><p class="text-center mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Velocidad (km/h)</p></div>
-          <div class="gauge-container flex flex-col items-center"><div id="gauge-velocidad-vertical"></div><p class="text-center mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Vel. Vertical (m/s)</p></div>
-          <div class="gauge-container flex flex-col items-center"><div id="gauge-bateria"></div><p class="text-center mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">Batería (%)</p></div>
+      <!-- Datos del vuelo -->
+      <div class="flex flex-col flex-shrink-0 w-full md:w-[420px] max-w-full h-full gap-6 justify-start md:justify-between">
+        <div class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl p-6 rounded-3xl shadow-2xl border border-slate-200/70 dark:border-slate-700/70 flex flex-col gap-6 min-h-0 h-full md:h-full">
+          <h3 class="text-xl font-extrabold text-center text-brand dark:text-brand-dark tracking-tight drop-shadow">Datos del Vuelo</h3>
+          <div id="info-dron" class="w-full grid grid-cols-2 gap-4 text-base text-left text-slate-700 dark:text-slate-200">
+            <!-- Ejemplo de tarjetas, el JS debe generar tarjetas así -->
+            <!--
+            <div class="bg-white/60 dark:bg-slate-800/60 rounded-2xl shadow p-4 flex flex-col items-center">
+              <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">Duración (min)</span>
+              <span class="text-lg font-bold text-brand dark:text-brand-dark">10.2</span>
+            </div>
+            -->
+          </div>
+          <div id="indicadores-dron" class="mt-2 grid grid-cols-2 gap-4 text-center">
+            <div class="flex flex-col items-center group">
+              <div id="led-video" class="w-6 h-6 rounded-full bg-gray-500 shadow-lg border-2 border-slate-300 dark:border-slate-700 transition-colors duration-300 animate-pulse group-hover:scale-110 group-hover:ring-2 group-hover:ring-brand"></div>
+              <span class="mt-1 text-xs text-slate-600 dark:text-slate-400">Grabando</span>
+            </div>
+            <div class="flex flex-col items-center group">
+              <div id="led-foto" class="w-6 h-6 rounded-full bg-gray-500 shadow-lg border-2 border-slate-300 dark:border-slate-700 transition-colors duration-300 group-hover:scale-110 group-hover:ring-2 group-hover:ring-green-400"></div>
+              <span class="mt-1 text-xs text-slate-600 dark:text-slate-400">Foto</span>
+            </div>
+          </div>
+          <button onclick="window.volverAlResumen()" class="mt-4 px-4 py-2 bg-gradient-to-r from-brand to-brand-dark text-white font-extrabold rounded-xl shadow-xl hover:scale-105 hover:from-brand-dark hover:to-brand focus:outline-none focus:ring-4 focus:ring-brand/40 transition-all duration-200 flex items-center justify-center gap-2 text-base">
+            <svg class="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            Volver al Panel
+          </button>
         </div>
       </div>
     </div>
-
-    <!-- Datos del vuelo (1/3 en pantallas grandes) -->
-    <div class="xl:w-1/3 bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-lg">
-      <h3 class="text-xl font-bold mb-4 text-center text-text-light dark:text-text-dark">Datos del Vuelo</h3>
-      <div id="info-dron" class="grid grid-cols-2 gap-4">
-        <!-- Contenido dinámico -->
-      </div>
-      <!-- DENTRO DE LA TARJETA DE DATOS DE VUELO (después del div #info-dron) -->
-<div id="indicadores-dron" class="mt-6 grid grid-cols-2 gap-4 text-center">
-  <div class="flex flex-col items-center">
-    <div id="led-video" class="w-5 h-5 rounded-full bg-gray-500 shadow-md transition-colors duration-300"></div>
-    <span class="mt-1 text-sm text-slate-600 dark:text-slate-400">Grabando</span>
-  </div>
-  <div class="flex flex-col items-center">
-    <div id="led-foto" class="w-5 h-5 rounded-full bg-gray-500 shadow-md transition-colors duration-300"></div>
-    <span class="mt-1 text-sm text-slate-600 dark:text-slate-400">Foto</span>
-  </div>
-</div>
-
-
     </div>
-  </div>
+  </section>
 </div>
-
-    <button onclick="document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light')" class="fixed bottom-5 right-5 z-30 p-3 bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark rounded-full shadow-lg" aria-label="Cambiar tema">
-        <svg class="h-6 w-6 hidden dark:block" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-        <svg class="h-6 w-6 block dark:hidden" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-    </button>
-
-    <script src="/static/js/app.js" defer></script>
-    <script>
+<script src="/static/js/app.js"></script>
+<script>
+// --- Código UI/UX y navegación FlightScope ---
+document.addEventListener('DOMContentLoaded', function() {
+  // Modal de carga de vuelo múltiple y drag & drop
+  window.abrirModalUploadVuelo = function() {
+    document.getElementById('modal-upload-vuelo').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('upload-vuelo-msg').textContent = '';
+    document.getElementById('form-upload-vuelo').reset();
+    document.getElementById('upload-vuelo-list').innerHTML = '';
+  };
+  window.cerrarModalUploadVuelo = function() {
+    document.getElementById('modal-upload-vuelo').classList.add('hidden');
+    document.body.style.overflow = '';
+  };
+  // Drag & drop y selección múltiple
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('input-csv-vuelo');
+  const fileList = document.getElementById('upload-vuelo-list');
+  let filesSeleccionados = [];
+  if (dropZone && fileInput && fileList) {
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('bg-brand/20'); });
+    dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('bg-brand/20'); });
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('bg-brand/20');
+      filesSeleccionados = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.csv'));
+      fileInput.files = e.dataTransfer.files;
+      mostrarListaArchivos();
+    });
+    fileInput.addEventListener('change', () => {
+      filesSeleccionados = Array.from(fileInput.files).filter(f => f.name.endsWith('.csv'));
+      mostrarListaArchivos();
+    });
+    function mostrarListaArchivos() {
+      if (!filesSeleccionados.length) {
+        fileList.innerHTML = '<li class="text-slate-400">Ningún archivo seleccionado.</li>';
+      } else {
+        // Solo mostrar los nombres, máximo 5
+        const mostrar = filesSeleccionados.slice(0, 5);
+        fileList.innerHTML = mostrar.map(f => `<li>${f.name}</li>`).join('');
+        if (filesSeleccionados.length > 5) {
+          fileList.innerHTML += `<li class='text-slate-400'>+${filesSeleccionados.length - 5} más...</li>`;
+        }
+      }
+    }
+    document.getElementById('form-upload-vuelo').onsubmit = async function(e) {
+      e.preventDefault();
+      const msgDiv = document.getElementById('upload-vuelo-msg');
+      if (!filesSeleccionados.length) {
+        msgDiv.textContent = 'Selecciona al menos un archivo CSV.';
+        msgDiv.className = 'mt-4 text-center text-sm text-red-500';
+        return;
+      }
+      const formData = new FormData();
+      for (const f of filesSeleccionados) formData.append('files', f);
+      msgDiv.textContent = 'Subiendo...';
+      msgDiv.className = 'mt-4 text-center text-sm text-slate-500';
+      try {
+        const resp = await fetch('/upload_vuelo', { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (Array.isArray(data)) {
+          let ok = 0, fail = 0;
+          // Solo mostrar errores (máx 5) si hay fallos
+          const errores = data.filter(r => !r.success);
+          if (errores.length) {
+            const mostrarErrores = errores.slice(0, 5).map(r => `<li class='text-red-500'>✖ ${r.filename}: ${r.error}</li>`).join('');
+            fileList.innerHTML = mostrarErrores + (errores.length > 5 ? `<li class='text-slate-400'>+${errores.length - 5} más errores...</li>` : '');
+          } else {
+            fileList.innerHTML = '';
+          }
+          ok = data.filter(r => r.success).length;
+          fail = data.length - ok;
+          msgDiv.textContent = ok ? `Se cargaron ${ok} vuelo(s) correctamente.` : 'No se pudo cargar ningún vuelo.';
+          msgDiv.className = ok ? 'mt-4 text-center text-sm text-green-600' : 'mt-4 text-center text-sm text-red-500';
+          // Limpiar selección tras la carga
+          filesSeleccionados = [];
+          fileInput.value = '';
+          if (ok) setTimeout(() => { window.cerrarModalUploadVuelo(); window.location.reload(); }, 1500);
+        } else {
+          msgDiv.textContent = data.error || 'Error al cargar los vuelos.';
+          msgDiv.className = 'mt-4 text-center text-sm text-red-500';
+        }
+      } catch (err) {
+        msgDiv.textContent = 'Error de red o del servidor.';
+        msgDiv.className = 'mt-4 text-center text-sm text-red-500';
+      }
+    };
+  }
   setInterval(() => {
     const ledVideo = document.getElementById("led-video");
     const ledFoto = document.getElementById("led-foto");
-
-    // Estado de grabación
-    if (window.isRecording) {
+    if (window.isRecording && ledVideo) {
       ledVideo.classList.remove("bg-gray-500");
       ledVideo.classList.add("bg-red-500");
-    } else {
+    } else if (ledVideo) {
       ledVideo.classList.remove("bg-red-500");
       ledVideo.classList.add("bg-gray-500");
     }
-
-    // Estado de foto (enciende por 2s, luego vuelve a gris)
-    if (window.isTakingPhoto) {
+    if (window.isTakingPhoto && ledFoto) {
       ledFoto.classList.remove("bg-gray-500");
       ledFoto.classList.add("bg-green-400");
       setTimeout(() => {
@@ -176,12 +326,37 @@
       window.isTakingPhoto = false;
     }
   }, 300);
+  // Delegación de eventos para abrir vuelos
+  const listaVuelos = document.getElementById('lista-vuelos');
+  if (listaVuelos) {
+    listaVuelos.addEventListener('click', function(e) {
+      let li = e.target;
+      // Buscar el <li> más cercano con el atributo data-vuelo-id
+      while (li && li !== listaVuelos && !li.dataset.vueloId) {
+        li = li.parentElement;
+      }
+      if (li && li.dataset.vueloId) {
+        console.log('[FlightScope] Click vuelo:', li.dataset.vueloId);
+        // Llama a la función legacy directamente
+        window.cargarVuelo(li.dataset.vueloId);
+      }
+    });
+  }
+  window.volverAlResumen = function() {
+    console.log('[FlightScope] volverAlResumen');
+    const detalle = document.getElementById('detalle-vuelo');
+    const resumen = document.getElementById('resumen');
+    if (!detalle || !resumen) {
+      console.warn('[FlightScope] No se encontraron paneles para navegación');
+      return;
+    }
+    detalle.style.display = 'none';
+    resumen.style.display = '';
+  };
+});
 </script>
-
-
 </body>
 </html>
-
 
 
 

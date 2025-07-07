@@ -57,21 +57,20 @@ def _extraer_metricas(filas: List[Dict[str, str]]) -> Dict[str, Any]:
         for fila in filas:
             try:
                 lat, lon = float(fila["latitude"]), float(fila["longitude"])
-                
                 metricas["altitud_max_pies"] = max(metricas["altitud_max_pies"], float(fila.get("height_above_takeoff(feet)", 0)))
                 metricas["velocidad_max_mph"] = max(metricas["velocidad_max_mph"], float(fila.get("speed(mph)", 0)))
                 metricas["temp_max_f"] = max(metricas["temp_max_f"], float(fila.get("battery_temperature(f)", -float('inf'))))
 
                 dist_home = distancia_haversine(home_coords[0], home_coords[1], lat, lon)
-                metricas["distancia_max_origen_km"] = max(metricas["distancia_max_origen_km"], dist_home)
+                # Solo considerar distancias razonables (<=10km) para el cálculo de distancia máxima desde el origen
+                if dist_home <= 10.0:
+                    metricas["distancia_max_origen_km"] = max(metricas["distancia_max_origen_km"], dist_home)
 
                 if lat_prev is not None:
                     dist_segmento = distancia_haversine(lat_prev, lon_prev, lat, lon)
                     if dist_segmento < LIMITE_DISTANCIA_SEGMENTO_KM:
                         metricas["distancia_total_km"] += dist_segmento
-                
                 lat_prev, lon_prev = lat, lon
-
             except (ValueError, TypeError):
                 continue # Ignorar fila si tiene datos numéricos inválidos
 
