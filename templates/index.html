@@ -145,9 +145,11 @@
         <ul id="lista-vuelos" class="space-y-4 w-full">
           {% for vuelo in vuelos %}
           <li data-vuelo-id="{{ vuelo.id }}" role="button" class="cursor-pointer bg-brand/5 dark:bg-brand/10 p-5 rounded-xl shadow-sm hover:ring-2 hover:ring-brand dark:hover:bg-slate-700/40 transition-all flex flex-col sm:flex-row justify-between items-center gap-2 border border-transparent hover:border-brand/30">
-            <span class="font-medium text-text-light dark:text-text-dark"></span>
-            <span class="font-medium text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</span>
-            <span class="text-sm text-slate-500 dark:text-slate-400">{{ "%.1f min"|format(vuelo.duracion_segundos / 60) }}</span>
+            <div class="flex flex-col text-center sm:text-left">
+              <span class="font-medium text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</span>
+              <span class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ vuelo.ubicacion }}</span>
+            </div>
+            <span class="font-semibold text-text-light dark:text-text-dark bg-slate-200/50 dark:bg-slate-700/50 px-3 py-1 rounded-full text-sm mt-2 sm:mt-0">{{ "%.1f min"|format(vuelo.duracion_segundos / 60) }}</span>
           </li>
           {% endfor %}
         </ul>
@@ -357,63 +359,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

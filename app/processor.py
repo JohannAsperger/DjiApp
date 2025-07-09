@@ -5,6 +5,8 @@ import shutil
 from datetime import datetime
 from math import radians, cos, sin, sqrt, atan2
 from typing import List, Dict, Any, Optional, Tuple
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderUnavailable, GeocoderTimedOut
 
 # --- Constantes de Conversión y Geográficas ---
 PIES_A_METROS = 0.3048
@@ -26,6 +28,50 @@ def distancia_haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> f
     a = sin(dlat / 2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2)**2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return RADIO_TERRESTRE_KM * c
+
+def _obtener_nombre_ubicacion(filas: List[Dict[str, str]]) -> str:
+    """
+    Obtiene el nombre de la ubicación del vuelo usando geocodificación inversa.
+    Busca la primera coordenada válida para mayor precisión.
+    """
+    coordenadas_validas = None
+    for fila in filas:
+        try:
+            lat = float(fila.get("latitude", 0))
+            lon = float(fila.get("longitude", 0))
+            # Consideramos (0, 0) como inválido, una suposición común.
+            if lat != 0.0 and lon != 0.0:
+                coordenadas_validas = (lat, lon)
+                break
+        except (ValueError, TypeError):
+            continue
+
+    if not coordenadas_validas:
+        return "Ubicación desconocida"
+
+    try:
+        geolocator = Nominatim(user_agent="dji_flight_processor_app")
+        location = geolocator.reverse(coordenadas_validas, exactly_one=True, language="es", timeout=10)
+        
+        if not location:
+            return "Ubicación no encontrada"
+
+        # Extraer solo las partes deseadas de la dirección
+        address_parts = location.raw.get('address', {})
+        
+        # Obtener las partes de la dirección con un orden de prioridad
+        barrio_o_zona = address_parts.get('suburb') or address_parts.get('neighbourhood') or address_parts.get('quarter')
+        localidad = address_parts.get('city') or address_parts.get('town') or address_parts.get('village')
+        pais = address_parts.get('country', '')
+
+        # Combinar las partes que existan, separadas por una coma.
+        # El filtro elimina las partes que no se encontraron (son None)
+        partes_finales = filter(None, [barrio_o_zona, localidad, pais])
+        nombre_final = ', '.join(partes_finales)
+
+        return nombre_final if nombre_final else "Ubicación no encontrada"
+    except (GeocoderUnavailable, GeocoderTimedOut, Exception):
+        return "Ubicación no disponible"
 
 # --- Funciones de Lógica Principal ---
 
@@ -116,6 +162,9 @@ def procesar_archivo_csv(ruta_archivo: str) -> Optional[Dict[str, Any]]:
         fecha_vuelo = filas[0]["datetime(utc)"]
         duracion_segundos = int(filas[-1]["time(millisecond)"]) / 1000
 
+        # Obtener nombre de la ubicación
+        nombre_ubicacion = _obtener_nombre_ubicacion(filas)
+
         # Cálculo de métricas complejas
         metricas = _extraer_metricas(filas)
         
@@ -126,6 +175,7 @@ def procesar_archivo_csv(ruta_archivo: str) -> Optional[Dict[str, Any]]:
         resumen = {
             "id": id_vuelo,
             "fecha": fecha_vuelo,
+            "ubicacion": nombre_ubicacion,
             "duracion_segundos": round(duracion_segundos, 1),
             "altitud_maxima_metros": round(metricas["altitud_max_pies"] * PIES_A_METROS, 1),
             "distancia_maxima_km": round(metricas["distancia_max_origen_km"], 3),
@@ -144,8 +194,3 @@ def procesar_archivo_csv(ruta_archivo: str) -> Optional[Dict[str, Any]]:
     except (KeyError, IndexError, ValueError) as e:
         print(f"❌ Error crítico procesando {ruta_archivo}: Faltan datos esenciales. Error: {e}")
         return None
-
-
-
-
-

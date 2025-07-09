@@ -105,7 +105,8 @@ def create_app():
                                 "id": entry.name,
                                 "fecha_dt": dt_obj,
                                 "fecha_mostrar": dt_obj.strftime("%Y-%m-%d %H:%M") if fecha_str else "Fecha desconocida",
-                                "duracion_segundos": data.get("duracion_segundos", 0)
+                                "duracion_segundos": data.get("duracion_segundos", 0),
+                                "ubicacion": data.get("ubicacion") # <-- Se añade la ubicación
                             })
                     except (json.JSONDecodeError, KeyError, TypeError) as e:
                         print(f"Advertencia: No se pudo cargar el vuelo {entry.name}: {e}")
@@ -128,6 +129,7 @@ def create_app():
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True, port=3000)
+
 
 
 

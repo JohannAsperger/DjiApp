@@ -26,15 +26,6 @@ def upload_vuelo():
             resultados.append({"filename": file.filename if file else '', "success": False, "error": "Archivo no es CSV."})
             continue
         base_name = os.path.splitext(file.filename)[0]
-        # Validar si ya existe un vuelo con el mismo nombre base
-        existe_duplicado = False
-        for existing in os.listdir(DATA_PATH):
-            if existing.startswith(base_name + "_"):
-                existe_duplicado = True
-                break
-        if existe_duplicado:
-            resultados.append({"filename": file.filename, "success": False, "error": "Ya existe un vuelo con este nombre de archivo."})
-            continue
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         vuelo_id = f"{base_name}_{timestamp}"
         vuelo_path = os.path.join(DATA_PATH, vuelo_id)

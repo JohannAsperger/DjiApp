@@ -1,19 +1,13 @@
-// ... INICIO del archivo sin cambios previos ...
+// c:\Users\johan\Desktop\DjiApp\static\js\app.js
 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk0M2RjOC0xYzc5LTQyZTgtOTMzYy1iOGMzOGMyMjFkNGIiLCJpZCI6MzEyMjA4LCJpYXQiOjE3NDk5MjM2OTZ9.hNylnne1DsKBD6JknfqBaB0NwC2YeRd2B0LqiCryCxM';
 
+// --- ESTADO GLOBAL ---
 let viewer = null;
 let flightEntity = null;
 let tickListener = null;
 const gauges = {};
 
-let videoFlags = [];
-let fotoFlags = [];
-let isRecording = false;
-let isTakingPhoto = false;
-
-function obtenerIndiceMasCercano(tiempos, actual) {
-  return tiempos.reduce((acc, t, i) => Math.abs(t - actual) < Math.abs(tiempos[acc] - actual) ? i : acc, 0);
-}
+// --- FUNCIONES DE LA INTERFAZ ---
 
 function actualizarDetallesVuelo(resumenData) {
   const infoDronDiv = document.getElementById("info-dron");
@@ -59,7 +53,12 @@ function inicializarGauges() {
   else gauges.velocidadVertical.refresh(0);
 }
 
-window.cargarVuelo = async (vueloId) => {
+// --- LÓGICA PRINCIPAL DEL VUELO ---
+
+/**
+ * Limpia el visor de Cesium y los listeners para preparar una nueva carga.
+ */
+function _limpiarVisor() {
   if (viewer) {
     if (tickListener) {
       viewer.clock.onTick.removeEventListener(tickListener);
@@ -69,12 +68,41 @@ window.cargarVuelo = async (vueloId) => {
     viewer = null;
     flightEntity = null;
   }
+}
 
+/**
+ * Valida los datos del vuelo y los muestra en la interfaz.
+ * @param {object} datos - El objeto de datos del vuelo recibido del backend.
+ */
+function _procesarYMostrarVuelo(datos) {
+  if (datos.error) throw new Error(datos.error);
+  if (!datos.coordenadas?.length) throw new Error("Vuelo sin coordenadas válidas para mostrar.");
+
+  // 🔐 Validar y corregir datos si es necesario
+  const arraysAValidar = ['grabando_video', 'tomando_foto', 'baterias', 'velocidades_horizontal', 'velocidades_vertical'];
+  arraysAValidar.forEach(key => {
+    if (!datos[key] || datos[key].length !== datos.tiempos.length) {
+      console.warn(`⚠️ '${key}' desalineado o ausente. Corrigiendo.`);
+      const defaultValue = (key === 'grabando_video' || key === 'tomando_foto') ? false : 0;
+      datos[key] = new Array(datos.tiempos.length).fill(defaultValue);
+    }
+  });
+
+  actualizarDetallesVuelo(datos.resumen);
+  inicializarGauges();
+  inicializarCesiumViewer(datos);
+}
+
+/**
+ * Carga un vuelo existente desde el servidor por su ID.
+ * @param {string} vueloId - El ID del vuelo a cargar.
+ */
+window.cargarVuelo = async (vueloId) => {
+  _limpiarVisor();
+  
   const resumenView = document.getElementById("resumen");
   const detalleView = document.getElementById("detalle-vuelo");
-
   if (!resumenView || !detalleView) return;
-
   resumenView.style.display = "none";
   detalleView.style.display = "block";
   document.body.style.overflow = "auto";
@@ -83,26 +111,7 @@ window.cargarVuelo = async (vueloId) => {
     const response = await fetch(`/vuelo/${vueloId}`);
     if (!response.ok) throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
     const datos = await response.json();
-    if (datos.error) throw new Error(datos.error);
-    if (!datos.coordenadas?.length) throw new Error("Vuelo sin coordenadas válidas para mostrar.");
-
-    actualizarDetallesVuelo(datos.resumen);
-    inicializarGauges();
-    await inicializarCesiumViewer(datos);
-
-    videoFlags = datos.grabando_video || [];
-    fotoFlags = datos.tomando_foto || [];
-
-    // 🔐 Validar longitud
-    if (videoFlags.length !== datos.tiempos.length) {
-      console.warn("⚠️ videoFlags desalineado. Corrigiendo.");
-      videoFlags = new Array(datos.tiempos.length).fill(false);
-    }
-    if (fotoFlags.length !== datos.tiempos.length) {
-      console.warn("⚠️ fotoFlags desalineado. Corrigiendo.");
-      fotoFlags = new Array(datos.tiempos.length).fill(false);
-    }
-
+    _procesarYMostrarVuelo(datos);
   } catch (e) {
     console.error("❌ Error al cargar el vuelo:", e);
     alert(`No se pudo cargar el vuelo:\n\n${e.message}`);
@@ -110,12 +119,67 @@ window.cargarVuelo = async (vueloId) => {
   }
 };
 
-async function inicializarCesiumViewer({ coordenadas, tiempos, fecha_inicio, baterias, velocidades_horizontal, velocidades_vertical }) {
-  if (viewer) {
-    if (tickListener) viewer.clock.onTick.removeEventListener(tickListener);
-    viewer.destroy();
-    viewer = null;
+/**
+ * Sube uno o más archivos CSV, los procesa en el backend y carga el primer vuelo válido en el visor.
+ * @param {FileList} files - La lista de archivos seleccionados por el usuario.
+ */
+window.cargarNuevosVuelosDesdeArchivos = async (files) => {
+  if (!files || files.length === 0) {
+    alert('No se seleccionó ningún archivo.');
+    return;
   }
+
+  _limpiarVisor();
+
+  const resumenView = document.getElementById("resumen");
+  const detalleView = document.getElementById("detalle-vuelo");
+  if (!resumenView || !detalleView) return;
+  resumenView.style.display = "none";
+  detalleView.style.display = "block";
+  document.body.style.overflow = "auto";
+
+  const formData = new FormData();
+  let csvCount = 0;
+  for (const file of files) {
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      formData.append('csv_files', file); // Usamos el mismo nombre para todos los archivos
+      csvCount++;
+    }
+  }
+
+  if (csvCount === 0) {
+    alert('Por favor, selecciona al menos un archivo CSV válido.');
+    window.volverAlResumen();
+    return;
+  }
+
+  try {
+    // Muestra un indicador de carga (opcional, pero recomendado)
+    // document.getElementById('loading-indicator').style.display = 'block';
+
+    const response = await fetch('/upload_vuelos', { // Endpoint actualizado a plural
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+    // El backend devolverá los datos del primer vuelo procesado con éxito
+    const datos = await response.json();
+    _procesarYMostrarVuelo(datos);
+
+  } catch (e) {
+    console.error("❌ Error al subir y procesar los nuevos vuelos:", e);
+    alert(`No se pudieron cargar los vuelos:\n\n${e.message}`);
+    window.volverAlResumen();
+  } finally {
+    // Oculta el indicador de carga
+    // document.getElementById('loading-indicator').style.display = 'none';
+  }
+};
+
+
+function inicializarCesiumViewer(datos) {
+  const { coordenadas, tiempos, fecha_inicio, baterias, velocidades_horizontal, velocidades_vertical, grabando_video, tomando_foto } = datos;
 
   viewer = new Cesium.Viewer("cesiumContainer", {
     terrainProvider: new Cesium.EllipsoidTerrainProvider(),
@@ -180,6 +244,12 @@ async function inicializarCesiumViewer({ coordenadas, tiempos, fecha_inicio, bat
     });
   }
 
+  // --- ESTADO LOCAL PARA LA ANIMACIÓN ---
+  // Se encapsula el estado de la animación para evitar variables globales.
+  let ultimoIndiceConocido = 0;
+  let fotoLedTimeout = null;
+  let ultimaFotoFlag = false;
+
   tickListener = () => {
     const currentTime = viewer.clock.currentTime;
     const currentPosition = positionProperty.getValue(currentTime);
@@ -189,30 +259,51 @@ async function inicializarCesiumViewer({ coordenadas, tiempos, fecha_inicio, bat
     }
 
     const t = Cesium.JulianDate.secondsDifference(currentTime, start);
-    const i = obtenerIndiceMasCercano(tiempos, t);
+
+    // ✅ OPTIMIZACIÓN DE RENDIMIENTO: Búsqueda eficiente del índice actual.
+    // En lugar de recorrer todo el array en cada fotograma, avanzamos o
+    // retrocedemos desde la última posición conocida.
+    let i = ultimoIndiceConocido;
+    if (tiempos[i] < t) { // Búsqueda hacia adelante
+      while (i < tiempos.length - 1 && tiempos[i] < t) {
+        i++;
+      }
+    } else { // Búsqueda hacia atrás (si el usuario mueve la línea de tiempo)
+      while (i > 0 && tiempos[i] > t) {
+        i--;
+      }
+    }
+    ultimoIndiceConocido = i;
 
     if (coordenadas[i]) {
-      if (typeof videoFlags[i] !== "undefined") isRecording = videoFlags[i];
-      if (typeof fotoFlags[i] !== "undefined") isTakingPhoto = fotoFlags[i];
-
       // 🟢🔴 ACTUALIZACIÓN VISUAL DE INDICADORES
       const ledVideo = document.getElementById("led-video");
       if (ledVideo) {
-        ledVideo.classList.remove("bg-red-500", "bg-gray-500");
-        ledVideo.classList.add(isRecording ? "bg-red-500" : "bg-gray-500");
+        const isRecording = grabando_video[i];
+        ledVideo.classList.toggle("bg-red-500", isRecording);
+        ledVideo.classList.toggle("bg-gray-500", !isRecording);
       }
 
+      // ✅ CORRECCIÓN RACE CONDITION: Lógica robusta para el indicador de foto.
+      // Se detecta el momento exacto en que se toma la foto y se gestiona
+      // el temporizador de forma segura para evitar apagados prematuros.
       const ledFoto = document.getElementById("led-foto");
-      if (ledFoto && isTakingPhoto) {
-        ledFoto.classList.remove("bg-gray-500");
-        ledFoto.classList.add("bg-green-400");
-        setTimeout(() => {
-          ledFoto.classList.remove("bg-green-400");
-          ledFoto.classList.add("bg-gray-500");
-        }, 2000);
-        isTakingPhoto = false;
+      if (ledFoto) {
+        const fotoTomadaAhora = tomando_foto[i] && !ultimaFotoFlag;
+        if (fotoTomadaAhora) {
+          if (fotoLedTimeout) clearTimeout(fotoLedTimeout); // Cancela timer anterior
+          ledFoto.classList.remove("bg-gray-500");
+          ledFoto.classList.add("bg-green-400");
+          fotoLedTimeout = setTimeout(() => {
+            ledFoto.classList.remove("bg-green-400");
+            ledFoto.classList.add("bg-gray-500");
+            fotoLedTimeout = null;
+          }, 2000);
+        }
+        ultimaFotoFlag = tomando_foto[i];
       }
 
+      // Actualización de los medidores (gauges)
       gauges.velocidad?.refresh(Math.max(0, velocidades_horizontal[i]).toFixed(1));
       gauges.velocidadVertical?.refresh(velocidades_vertical[i].toFixed(1));
       gauges.altitud?.refresh(coordenadas[i].alt.toFixed(1));
@@ -231,41 +322,7 @@ window.volverAlResumen = function () {
   if (resumenView) resumenView.style.display = "block";
   document.body.style.overflow = "auto";
 
-  if (viewer) {
-    if (tickListener) {
-      viewer.clock.onTick.removeEventListener(tickListener);
-    }
-    viewer.destroy();
-    viewer = null;
-    flightEntity = null;
-    tickListener = null;
-  }
+  _limpiarVisor();
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
