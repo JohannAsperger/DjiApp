@@ -73,6 +73,24 @@ def _obtener_nombre_ubicacion(filas: List[Dict[str, str]]) -> str:
     except (GeocoderUnavailable, GeocoderTimedOut, Exception):
         return "Ubicación no disponible"
 
+def _verificar_disponibilidad_gps(filas: List[Dict[str, str]], umbral_satelites: int = 5) -> bool:
+    """
+    Verifica si el vuelo tiene datos GPS fiables recorriendo todas las filas.
+    Busca al menos una fila con coordenadas válidas y un número suficiente de satélites.
+    """
+    for fila in filas:
+        try:
+            lat = float(fila.get("latitude", 0))
+            lon = float(fila.get("longitude", 0))
+            satelites = int(fila.get("satellites", 0))
+
+            # Si encontramos un solo punto con coordenadas y satélites suficientes, es un vuelo con GPS.
+            if lat != 0.0 and lon != 0.0 and satelites >= umbral_satelites:
+                return True
+        except (ValueError, TypeError):
+            continue
+    return False # No se encontraron puntos GPS válidos en todo el vuelo
+
 # --- Funciones de Lógica Principal ---
 
 def _leer_csv(ruta_archivo: str) -> Optional[List[Dict[str, str]]]:
@@ -84,7 +102,7 @@ def _leer_csv(ruta_archivo: str) -> Optional[List[Dict[str, str]]]:
         print(f"❌ Error al leer el archivo CSV {ruta_archivo}: {e}")
         return None
 
-def _extraer_metricas(filas: List[Dict[str, str]]) -> Dict[str, Any]:
+def _extraer_metricas(filas: List[Dict[str, str]], tiene_gps: bool) -> Dict[str, Any]:
     """Extrae y calcula las métricas clave de las filas de telemetría."""
     metricas = {
         "altitud_max_pies": 0.0,
@@ -96,30 +114,39 @@ def _extraer_metricas(filas: List[Dict[str, str]]) -> Dict[str, Any]:
         "bateria_fin": None,
     }
 
-    try:
-        home_coords = (float(filas[0]["latitude"]), float(filas[0]["longitude"]))
-        lat_prev, lon_prev = None, None
+    lat_prev, lon_prev = None, None
+    home_coords = None
 
-        for fila in filas:
-            try:
+    for fila in filas:
+        try:
+            # Métricas que no dependen de GPS se calculan siempre
+            metricas["altitud_max_pies"] = max(metricas["altitud_max_pies"], float(fila.get("height_above_takeoff(feet)", 0)))
+            metricas["velocidad_max_mph"] = max(metricas["velocidad_max_mph"], float(fila.get("speed(mph)", 0)))
+            metricas["temp_max_f"] = max(metricas["temp_max_f"], float(fila.get("battery_temperature(f)", -float('inf'))))
+
+            if tiene_gps:
                 lat, lon = float(fila["latitude"]), float(fila["longitude"])
-                metricas["altitud_max_pies"] = max(metricas["altitud_max_pies"], float(fila.get("height_above_takeoff(feet)", 0)))
-                metricas["velocidad_max_mph"] = max(metricas["velocidad_max_mph"], float(fila.get("speed(mph)", 0)))
-                metricas["temp_max_f"] = max(metricas["temp_max_f"], float(fila.get("battery_temperature(f)", -float('inf'))))
+                
+                # Establecer el punto de origen con las primeras coordenadas válidas
+                if home_coords is None and lat != 0.0 and lon != 0.0:
+                    home_coords = (lat, lon)
 
-                dist_home = distancia_haversine(home_coords[0], home_coords[1], lat, lon)
-                # Solo considerar distancias razonables (<=10km) para el cálculo de distancia máxima desde el origen
-                if dist_home <= 10.0:
-                    metricas["distancia_max_origen_km"] = max(metricas["distancia_max_origen_km"], dist_home)
-
+                if home_coords:
+                    dist_home = distancia_haversine(home_coords[0], home_coords[1], lat, lon)
+                    if dist_home <= 10.0: # Filtro de sensatez
+                        metricas["distancia_max_origen_km"] = max(metricas["distancia_max_origen_km"], dist_home)
+                
                 if lat_prev is not None:
                     dist_segmento = distancia_haversine(lat_prev, lon_prev, lat, lon)
                     if dist_segmento < LIMITE_DISTANCIA_SEGMENTO_KM:
                         metricas["distancia_total_km"] += dist_segmento
+                
                 lat_prev, lon_prev = lat, lon
-            except (ValueError, TypeError):
-                continue # Ignorar fila si tiene datos numéricos inválidos
 
+        except (ValueError, TypeError, KeyError):
+            continue # Ignorar fila si tiene datos numéricos o de GPS inválidos
+
+    try:
         valores_bateria = [float(f["battery_percent"]) for f in filas if f.get("battery_percent")]
         if valores_bateria:
             metricas["bateria_inicio"] = valores_bateria[0]
@@ -156,22 +183,28 @@ def procesar_archivo_csv(ruta_archivo: str) -> Optional[Dict[str, Any]]:
         print(f"⚠️  Archivo vacío o no legible: {ruta_archivo}")
         return None
 
+    # 1. Determinar si el vuelo tiene datos GPS fiables
+    tiene_gps = _verificar_disponibilidad_gps(filas)
+
     try:
         # Extracción de datos básicos
         id_vuelo = os.path.splitext(os.path.basename(ruta_archivo))[0]
         fecha_vuelo = filas[0]["datetime(utc)"]
         duracion_segundos = int(filas[-1]["time(millisecond)"]) / 1000
 
-        # Obtener nombre de la ubicación
-        nombre_ubicacion = _obtener_nombre_ubicacion(filas)
+        # 2. Obtener métricas y ubicación condicionalmente
+        if tiene_gps:
+            nombre_ubicacion = _obtener_nombre_ubicacion(filas)
+        else:
+            nombre_ubicacion = "Vuelo sin GPS"
 
         # Cálculo de métricas complejas
-        metricas = _extraer_metricas(filas)
+        metricas = _extraer_metricas(filas, tiene_gps)
         
         # Guardar artefactos (directorio y copia del CSV)
         _crear_artefactos_vuelo(id_vuelo, ruta_archivo)
 
-        # Ensamblar el resumen final
+        # 3. Ensamblar el resumen final, incluyendo la nueva bandera
         resumen = {
             "id": id_vuelo,
             "fecha": fecha_vuelo,
@@ -183,6 +216,7 @@ def procesar_archivo_csv(ruta_archivo: str) -> Optional[Dict[str, Any]]:
             "temperatura_maxima_bateria_c": round(convertir_a_celsius(metricas["temp_max_f"]), 1),
             "velocidad_maxima_kmh": round(metricas["velocidad_max_mph"] * MPH_A_KMH, 1)
         }
+        resumen["tiene_gps"] = tiene_gps
 
         if metricas["bateria_inicio"] is not None:
             resumen["bateria_inicio_porcentaje"] = round(metricas["bateria_inicio"], 1)

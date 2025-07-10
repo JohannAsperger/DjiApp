@@ -73,6 +73,7 @@ def obtener_vuelo(vuelo_id):
     try:
         with open(resumen_path, 'r', encoding='utf-8') as f:
             resumen = json.load(f)
+        tiene_gps = resumen.get("tiene_gps", False)
         print(f"✅ Resumen cargado para {vuelo_id}")
 
         puntos = []
@@ -158,8 +159,13 @@ def obtener_vuelo(vuelo_id):
                     print(f"⚠️ Error procesando fila: {fila} -> {e}")
                     continue
 
-        if not puntos or not tiempos:
-            return jsonify({"error": "Vuelo sin datos válidos"}), 400
+        # Si no hay datos de tiempo, el vuelo es inválido.
+        if not tiempos:
+            return jsonify({"error": "Vuelo sin datos de tiempo válidos"}), 400
+        
+        # Si el vuelo debería tener GPS pero no se encontraron puntos, es un error.
+        if tiene_gps and not puntos:
+            return jsonify({"error": "Vuelo marcado con GPS pero sin coordenadas válidas."}), 400
         
         if fecha_inicio is None:
             return jsonify({"error": "No se encontraron datos de fecha válidos"}), 400
@@ -183,8 +189,3 @@ def obtener_vuelo(vuelo_id):
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Error interno al procesar el vuelo"}), 500
-
-
-
-
-

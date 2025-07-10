@@ -42,11 +42,13 @@ def create_app():
                         with open(resumen_path, "r", encoding="utf-8") as f:
                             data = json.load(f)
                             resumen["cantidad_vuelos"] += 1
-                            resumen["tiempo_total_vuelo_min"] += data.get("duracion_segundos", 0) / 60
-                            resumen["distancia_total_km"] += data.get("distancia_recorrida_km", 0)
-                            resumen["distancia_maxima_km"] = max(resumen["distancia_maxima_km"], data.get("distancia_maxima_km", 0))
-                            resumen["distancia_recorrida_max_km"] = max(resumen["distancia_recorrida_max_km"], data.get("distancia_recorrida_km", 0))
                             resumen["altitud_maxima_m"] = max(resumen["altitud_maxima_m"], data.get("altitud_maxima_metros", 0))
+                            # Solo sumar métricas de GPS si el vuelo las tiene
+                            if data.get("tiene_gps", False):
+                                resumen["tiempo_total_vuelo_min"] += data.get("duracion_segundos", 0) / 60
+                                resumen["distancia_total_km"] += data.get("distancia_recorrida_km", 0)
+                                resumen["distancia_maxima_km"] = max(resumen["distancia_maxima_km"], data.get("distancia_maxima_km", 0))
+                                resumen["distancia_recorrida_max_km"] = max(resumen["distancia_recorrida_max_km"], data.get("distancia_recorrida_km", 0))
                             resumen["temperatura_maxima_c"] = max(resumen["temperatura_maxima_c"], data.get("temperatura_maxima_bateria_c", 0))
                             resumen["velocidad_maxima_kmh"] = max(resumen["velocidad_maxima_kmh"], data.get("velocidad_maxima_kmh", 0))
                     except (json.JSONDecodeError, KeyError, TypeError) as e:
@@ -95,7 +97,7 @@ def create_app():
                                     dt_obj = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M:%S")
                                 except ValueError:
                                     try:
-                                        dt_obj = datetime.strptime(fecha_str, "%Y-%m-%d")
+                                        dt_obj = datetime.strptime(fecha_str, "%d-%m-%Y")
                                     except ValueError:
                                         print(f"Advertencia: Formato de fecha no reconocido para '{fecha_str}' en vuelo {entry.name}. Usando fecha por defecto.")
                                         # dt_obj ya tiene el valor por defecto
@@ -104,9 +106,10 @@ def create_app():
                             vuelos.append({
                                 "id": entry.name,
                                 "fecha_dt": dt_obj,
-                                "fecha_mostrar": dt_obj.strftime("%Y-%m-%d %H:%M") if fecha_str else "Fecha desconocida",
+                                "fecha_mostrar": dt_obj.strftime("%d-%m-%Y %H:%M") if fecha_str else "Fecha desconocida",
                                 "duracion_segundos": data.get("duracion_segundos", 0),
-                                "ubicacion": data.get("ubicacion") # <-- Se añade la ubicación
+                                "ubicacion": data.get("ubicacion", "Ubicación desconocida"),
+                                "tiene_gps": data.get("tiene_gps", False) # Pasar la bandera a la plantilla
                             })
                     except (json.JSONDecodeError, KeyError, TypeError) as e:
                         print(f"Advertencia: No se pudo cargar el vuelo {entry.name}: {e}")
@@ -129,9 +132,3 @@ def create_app():
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True, port=3000)
-
-
-
-
-
-

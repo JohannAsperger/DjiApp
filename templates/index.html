@@ -141,16 +141,38 @@
       </div>
       <!-- Historial de vuelos -->
       <section id="historial-vuelos" class="w-full bg-card-light dark:bg-card-dark rounded-2xl shadow-lg p-6 border border-slate-100 dark:border-slate-800 flex flex-col items-center">
-        <h2 class="text-2xl font-bold mb-6 text-text-light dark:text-text-dark tracking-tight text-center">Historial de Vuelos</h2>
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-6 mb-6 w-full">
+          <h2 class="text-2xl font-bold text-text-light dark:text-text-dark tracking-tight">Historial de Vuelos</h2>
+          <div class="flex items-center space-x-2">
+              <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Ocultar sin GPS</span>
+              <label for="toggle-gps" class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggle-gps" class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-200 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-brand"></div>
+              </label>
+          </div>
+        </div>
         <ul id="lista-vuelos" class="space-y-4 w-full">
           {% for vuelo in vuelos %}
-          <li data-vuelo-id="{{ vuelo.id }}" role="button" class="cursor-pointer bg-brand/5 dark:bg-brand/10 p-5 rounded-xl shadow-sm hover:ring-2 hover:ring-brand dark:hover:bg-slate-700/40 transition-all flex flex-col sm:flex-row justify-between items-center gap-2 border border-transparent hover:border-brand/30">
-            <div class="flex flex-col text-center sm:text-left">
-              <span class="font-medium text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</span>
-              <span class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ vuelo.ubicacion }}</span>
-            </div>
-            <span class="font-semibold text-text-light dark:text-text-dark bg-slate-200/50 dark:bg-slate-700/50 px-3 py-1 rounded-full text-sm mt-2 sm:mt-0">{{ "%.1f min"|format(vuelo.duracion_segundos / 60) }}</span>
-          </li>
+            {% if vuelo.tiene_gps %}
+              <li data-vuelo-id="{{ vuelo.id }}" data-tiene-gps="true" role="button" class="cursor-pointer bg-brand/5 dark:bg-brand/10 p-5 rounded-xl shadow-sm hover:ring-2 hover:ring-brand dark:hover:bg-slate-700/40 transition-all flex flex-col sm:flex-row justify-between items-center gap-2 border border-transparent hover:border-brand/30">
+                <div class="flex flex-col text-center sm:text-left">
+                  <span class="font-medium text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ vuelo.ubicacion }}</span>
+                </div>
+                <span class="font-semibold text-text-light dark:text-text-dark bg-slate-200/50 dark:bg-slate-700/50 px-3 py-1 rounded-full text-sm mt-2 sm:mt-0">{{ "%.1f min"|format(vuelo.duracion_segundos / 60) }}</span>
+              </li>
+            {% else %}
+              <li data-tiene-gps="false" class="bg-slate-100 dark:bg-slate-800/50 p-5 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-center gap-2 border border-slate-200 dark:border-slate-700/50 opacity-70">
+                <div class="flex flex-col text-center sm:text-left">
+                  <span class="font-medium text-text-light dark:text-text-dark">{{ vuelo.fecha_mostrar }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    {{ vuelo.ubicacion }}
+                  </span>
+                </div>
+                <span class="font-semibold text-text-light dark:text-text-dark bg-slate-200/50 dark:bg-slate-700/50 px-3 py-1 rounded-full text-sm mt-2 sm:mt-0">{{ "%.1f min"|format(vuelo.duracion_segundos / 60) }}</span>
+              </li>
+            {% endif %}
           {% endfor %}
         </ul>
       </section>
@@ -221,6 +243,26 @@
 <script>
 // --- Código UI/UX y navegación FlightScope ---
 document.addEventListener('DOMContentLoaded', function() {
+  // Variable para guardar la posición del scroll del panel de resumen
+  let scrollPosition = 0;
+
+  // Toggle para mostrar/ocultar vuelos sin GPS
+  const toggleGps = document.getElementById('toggle-gps');
+  if (toggleGps) {
+    toggleGps.addEventListener('change', function() {
+      const ocultarSinGps = this.checked;
+      const vuelos = document.querySelectorAll('#lista-vuelos > li');
+      vuelos.forEach(vuelo => {
+        const tieneGps = vuelo.dataset.tieneGps === 'true';
+        if (ocultarSinGps && !tieneGps) {
+          vuelo.classList.add('hidden');
+        } else {
+          vuelo.classList.remove('hidden');
+        }
+      });
+    });
+  }
+
   // Modal de carga de vuelo múltiple y drag & drop
   window.abrirModalUploadVuelo = function() {
     document.getElementById('modal-upload-vuelo').classList.remove('hidden');
@@ -338,6 +380,10 @@ document.addEventListener('DOMContentLoaded', function() {
         li = li.parentElement;
       }
       if (li && li.dataset.vueloId) {
+        // Guardar la posición actual del scroll antes de cambiar de vista
+        scrollPosition = window.scrollY;
+        console.log('[FlightScope] Scroll guardado:', scrollPosition);
+
         console.log('[FlightScope] Click vuelo:', li.dataset.vueloId);
         // Llama a la función legacy directamente
         window.cargarVuelo(li.dataset.vueloId);
@@ -354,6 +400,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     detalle.style.display = 'none';
     resumen.style.display = '';
+
+    // Restaurar la posición del scroll. Usamos requestAnimationFrame para asegurar
+    // que el navegador ha repintado la página y el scrollHeight es correcto.
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollPosition, behavior: 'auto' });
+    });
   };
 });
 </script>
