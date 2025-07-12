@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: djiapp
+    runtime: python
+    buildCommand: ""
+    startCommand: gunicorn main:app --bind 0.0.0.0:10000
+    envVars:
+      - key: FLASK_ENV
+        value: production
+    plan: free
+    autoDeploy: true
