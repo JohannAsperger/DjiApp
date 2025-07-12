@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2023-12-27 18:04:00",
+  "ubicacion": "Pueblo Mio, Uruguay",
+  "duracion_segundos": 1022.2,
+  "altitud_maxima_metros": 120.9,
+  "distancia_maxima_km": 0.385,
+  "distancia_recorrida_km": 3.279,
+  "temperatura_maxima_bateria_c": 51.0,
+  "velocidad_maxima_kmh": 57.8,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 100.0,
+  "bateria_fin_porcentaje": 30.0
+}

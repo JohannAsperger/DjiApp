@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2022-08-14 03:26:02",
+  "ubicacion": "Parque Rodó, Montevideo, Uruguay",
+  "duracion_segundos": 441.8,
+  "altitud_maxima_metros": 90.2,
+  "distancia_maxima_km": 0.123,
+  "distancia_recorrida_km": 0.34,
+  "temperatura_maxima_bateria_c": 33.4,
+  "velocidad_maxima_kmh": 50.1,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 98.0,
+  "bateria_fin_porcentaje": 69.0
+}

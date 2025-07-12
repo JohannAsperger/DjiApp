@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2025-05-05 16:32:51",
+  "ubicacion": "Ferradura, Armação dos Búzios, Brasil",
+  "duracion_segundos": 610.3,
+  "altitud_maxima_metros": 158.4,
+  "distancia_maxima_km": 0.959,
+  "distancia_recorrida_km": 4.39,
+  "temperatura_maxima_bateria_c": 53.6,
+  "velocidad_maxima_kmh": 58.0,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 96.0,
+  "bateria_fin_porcentaje": 35.0
+}

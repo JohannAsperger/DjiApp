@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2022-09-06 22:02:02",
+  "ubicacion": "Punta Ballena, Uruguay",
+  "duracion_segundos": 326.6,
+  "altitud_maxima_metros": 112.3,
+  "distancia_maxima_km": 0.096,
+  "distancia_recorrida_km": 0.238,
+  "temperatura_maxima_bateria_c": 31.0,
+  "velocidad_maxima_kmh": 32.2,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 81.0,
+  "bateria_fin_porcentaje": 58.0
+}

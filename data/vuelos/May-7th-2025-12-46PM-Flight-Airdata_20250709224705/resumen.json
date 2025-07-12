@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2025-05-07 15:46:52",
+  "ubicacion": "Arraial do Cabo, Brasil",
+  "duracion_segundos": 1208.2,
+  "altitud_maxima_metros": 40.5,
+  "distancia_maxima_km": 0.036,
+  "distancia_recorrida_km": 0.497,
+  "temperatura_maxima_bateria_c": 43.2,
+  "velocidad_maxima_kmh": 23.3,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 100.0,
+  "bateria_fin_porcentaje": 28.0
+}

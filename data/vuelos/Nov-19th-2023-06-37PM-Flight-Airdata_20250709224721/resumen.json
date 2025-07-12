@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "",
+  "ubicacion": "Buceo, Montevideo, Uruguay",
+  "duracion_segundos": 434.6,
+  "altitud_maxima_metros": 51.4,
+  "distancia_maxima_km": 0.403,
+  "distancia_recorrida_km": 1.256,
+  "temperatura_maxima_bateria_c": 45.3,
+  "velocidad_maxima_kmh": 55.8,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 83.0,
+  "bateria_fin_porcentaje": 61.0
+}

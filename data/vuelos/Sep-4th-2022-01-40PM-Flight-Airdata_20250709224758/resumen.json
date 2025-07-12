@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2022-09-04 16:40:46",
+  "ubicacion": "Piriápolis, Uruguay",
+  "duracion_segundos": 831.4,
+  "altitud_maxima_metros": 51.1,
+  "distancia_maxima_km": 0.094,
+  "distancia_recorrida_km": 0.649,
+  "temperatura_maxima_bateria_c": 40.9,
+  "velocidad_maxima_kmh": 27.1,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 100.0,
+  "bateria_fin_porcentaje": 51.0
+}

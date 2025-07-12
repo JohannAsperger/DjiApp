@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2025-05-01 19:11:17",
+  "ubicacion": "Sapinhatuba III, Angra dos Reis, Brasil",
+  "duracion_segundos": 597.0,
+  "altitud_maxima_metros": 5.3,
+  "distancia_maxima_km": 0.014,
+  "distancia_recorrida_km": 0.031,
+  "temperatura_maxima_bateria_c": 43.7,
+  "velocidad_maxima_kmh": 16.0,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 54.0,
+  "bateria_fin_porcentaje": 49.0
+}

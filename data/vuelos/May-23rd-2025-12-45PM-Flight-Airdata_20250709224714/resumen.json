@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2025-05-23 15:45:18",
+  "ubicacion": "Vuelo sin GPS",
+  "duracion_segundos": 45.8,
+  "altitud_maxima_metros": 1.1,
+  "distancia_maxima_km": 0.0,
+  "distancia_recorrida_km": 0.0,
+  "temperatura_maxima_bateria_c": 37.5,
+  "velocidad_maxima_kmh": 13.9,
+  "tiene_gps": false,
+  "bateria_inicio_porcentaje": 70.0,
+  "bateria_fin_porcentaje": 67.0
+}

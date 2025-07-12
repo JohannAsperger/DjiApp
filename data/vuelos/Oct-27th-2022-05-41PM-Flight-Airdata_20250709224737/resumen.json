@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2022-10-27 20:41:58",
+  "ubicacion": "Pocitos, Montevideo, Uruguay",
+  "duracion_segundos": 77.6,
+  "altitud_maxima_metros": 11.2,
+  "distancia_maxima_km": 0.096,
+  "distancia_recorrida_km": 0.204,
+  "temperatura_maxima_bateria_c": 47.7,
+  "velocidad_maxima_kmh": 30.5,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 23.0,
+  "bateria_fin_porcentaje": 17.0
+}

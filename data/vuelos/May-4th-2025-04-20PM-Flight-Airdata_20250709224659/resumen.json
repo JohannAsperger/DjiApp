@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2025-05-04 19:20:00",
+  "ubicacion": "Brava, Armação dos Búzios, Brasil",
+  "duracion_segundos": 498.3,
+  "altitud_maxima_metros": 107.1,
+  "distancia_maxima_km": 0.462,
+  "distancia_recorrida_km": 2.198,
+  "temperatura_maxima_bateria_c": 41.7,
+  "velocidad_maxima_kmh": 57.0,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 95.0,
+  "bateria_fin_porcentaje": 58.0
+}

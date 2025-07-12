@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2022-08-16 04:26:18",
+  "ubicacion": "Vuelo sin GPS",
+  "duracion_segundos": 246.7,
+  "altitud_maxima_metros": 1.3,
+  "distancia_maxima_km": 0.0,
+  "distancia_recorrida_km": 0.0,
+  "temperatura_maxima_bateria_c": 40.7,
+  "velocidad_maxima_kmh": 1.8,
+  "tiene_gps": false,
+  "bateria_inicio_porcentaje": 85.0,
+  "bateria_fin_porcentaje": 79.0
+}

@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2022-11-02 22:21:46",
+  "ubicacion": "Punta Carretas, Montevideo, Uruguay",
+  "duracion_segundos": 894.7,
+  "altitud_maxima_metros": 30.4,
+  "distancia_maxima_km": 0.701,
+  "distancia_recorrida_km": 4.044,
+  "temperatura_maxima_bateria_c": 44.4,
+  "velocidad_maxima_kmh": 57.1,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 93.0,
+  "bateria_fin_porcentaje": 31.0
+}

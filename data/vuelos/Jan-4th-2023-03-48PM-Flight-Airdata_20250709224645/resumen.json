@@ -1,0 +1,14 @@
+{
+  "id": "datos",
+  "fecha": "2023-01-04 18:48:48",
+  "ubicacion": "Punta Del Este, Uruguay",
+  "duracion_segundos": 721.3,
+  "altitud_maxima_metros": 75.7,
+  "distancia_maxima_km": 1.55,
+  "distancia_recorrida_km": 4.244,
+  "temperatura_maxima_bateria_c": 50.9,
+  "velocidad_maxima_kmh": 58.8,
+  "tiene_gps": true,
+  "bateria_inicio_porcentaje": 95.0,
+  "bateria_fin_porcentaje": 34.0
+}
